@@ -56,4 +56,18 @@ describe('London Underground Timetable API', () => {
     expect(response.body.routes[0]).toHaveProperty('segments');
     expect(Array.isArray(response.body.routes[0].segments)).toBe(true);
   }, 30000);
+
+  test('GET /api/journey-plan prefers live TfL journey data for a stable route', async () => {
+    const response = await request(app)
+      .get('/api/journey-plan')
+      .query({ from: 'Kings Cross', to: 'Victoria' })
+      .timeout({ deadline: 30000, response: 25000 })
+      .expect(200);
+
+    expect(response.body).toHaveProperty('source', 'tfl');
+    expect(Array.isArray(response.body.routes)).toBe(true);
+    expect(response.body.routes.length).toBeGreaterThan(0);
+    expect(response.body.routes[0]).toHaveProperty('id');
+    expect(response.body.routes[0].id).toMatch(/^tfl-/);
+  }, 30000);
 });

@@ -7,66 +7,316 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
+        :root {
+            --bg-0: #fff5eb;
+            --bg-1: #f7efe3;
+            --bg-2: #e5edf6;
+            --surface: rgba(255, 255, 255, 0.9);
+            --surface-strong: #ffffff;
+            --surface-border: rgba(148, 163, 184, 0.22);
+            --text-strong: #132238;
+            --text-muted: #5f6d83;
+            --accent: #0f6cbd;
+            --accent-strong: #0a4f8a;
+            --shadow-soft: 0 20px 60px rgba(19, 34, 56, 0.1);
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecf1 100%);
+            font-family: 'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 32%),
+                radial-gradient(circle at top right, rgba(15, 108, 189, 0.08), transparent 26%),
+                linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 42%, var(--bg-2) 100%);
             min-height: 100vh;
-            color: #1a1a1a;
+            color: var(--text-strong);
             font-feature-settings: 'kern' 1;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
         header {
-            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            background:
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 30%),
+                linear-gradient(135deg, #132238 0%, #0d3b66 58%, #145374 100%);
             color: white;
-            padding: 2.5rem 2rem;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2.7rem 2rem 2.2rem;
+            box-shadow: 0 16px 40px rgba(10, 23, 39, 0.22);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            inset: auto -10% -50% 45%;
+            height: 220px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 68%);
+            pointer-events: none;
+        }
+        .header-layout {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            gap: 1.5rem;
+            align-items: flex-end;
+            position: relative;
+            z-index: 1;
+        }
+        .header-copy {
+            max-width: 760px;
+        }
+        .header-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: 0.9rem;
+        }
+        .header-subtitle {
+            max-width: 58ch;
+            color: rgba(234, 241, 250, 0.88);
+            font-size: 1rem;
+            line-height: 1.65;
+        }
+        .header-meta {
+            min-width: 260px;
+            display: grid;
+            gap: 0.8rem;
+        }
+        .header-meta-card {
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 1rem 1.1rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+        .meta-label {
+            display: block;
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(228, 236, 246, 0.75);
+            margin-bottom: 0.35rem;
+            font-weight: 700;
+        }
+        .meta-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
         }
         h1 {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 2.8rem;
-            margin-bottom: 0.6rem;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
+            font-family: 'Segoe UI', 'Aptos Display', sans-serif;
+            font-size: 3rem;
+            margin-bottom: 0.8rem;
+            letter-spacing: 0.01em;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+            text-transform: none;
+            background: linear-gradient(135deg, #ffffff 0%, #d8ecff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .time-display {
-            font-size: 1rem;
-            color: #a0aec0;
+            font-size: 1.05rem;
+            color: #ffffff;
             font-weight: 500;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
+            letter-spacing: 0.02em;
         }
         .container {
             max-width: 1400px;
-            margin: 2.5rem auto;
+            margin: 2rem auto 3rem;
             padding: 0 1.5rem;
         }
-        .controls {
-            background: white;
+        .hero-panel {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+            gap: 1.4rem;
+            margin: -3rem auto 1.4rem;
+            position: relative;
+            z-index: 2;
+        }
+        .hero-card,
+        .hero-metrics {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: 28px;
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        .hero-card {
+            padding: 1.7rem 1.8rem;
+        }
+        .hero-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(15, 108, 189, 0.09);
+            color: var(--accent-strong);
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        .hero-card h2 {
+            font-size: 2rem;
+            line-height: 1.1;
+            margin-bottom: 0.8rem;
+            color: var(--text-strong);
+        }
+        .hero-card p {
+            color: var(--text-muted);
+            line-height: 1.7;
+            max-width: 58ch;
+        }
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin: 1.35rem 0 1rem;
+        }
+        .hero-action,
+        .recent-chip {
+            border: none;
             border-radius: 16px;
+            padding: 0.95rem 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+        .hero-action.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #145374 100%);
+            color: white;
+            box-shadow: 0 14px 28px rgba(15, 108, 189, 0.22);
+        }
+        .hero-action.secondary {
+            background: rgba(15, 108, 189, 0.08);
+            color: var(--accent-strong);
+            border: 1px solid rgba(15, 108, 189, 0.15);
+        }
+        .hero-action:hover,
+        .recent-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(19, 34, 56, 0.12);
+        }
+        .hero-footnote {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .shortcut-pill {
+            padding: 0.38rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(19, 34, 56, 0.06);
+            font-weight: 700;
+            color: var(--text-strong);
+        }
+        .recent-activity {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            margin-top: 1rem;
+            min-height: 2.5rem;
+            align-items: center;
+        }
+        .recent-chip {
+            background: #fff;
+            color: var(--text-strong);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            box-shadow: 0 8px 18px rgba(19, 34, 56, 0.08);
+        }
+        .recent-chip.empty {
+            cursor: default;
+            box-shadow: none;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.62);
+        }
+        .hero-metrics {
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+            align-content: start;
+        }
+        .hero-metric-card {
+            background: var(--surface-strong);
+            border-radius: 22px;
+            padding: 1.15rem;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .hero-metric-card.emphasis {
+            background: linear-gradient(160deg, #132238 0%, #145374 100%);
+            color: white;
+        }
+        .hero-metric-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+        .hero-metric-card.emphasis .hero-metric-label,
+        .hero-metric-card.emphasis .hero-metric-detail {
+            color: rgba(240, 246, 253, 0.8);
+        }
+        .hero-metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-strong);
+            margin: 0.35rem 0;
+        }
+        .hero-metric-card.emphasis .hero-metric-value {
+            color: #ffffff;
+        }
+        .hero-metric-detail {
+            color: var(--text-muted);
+            line-height: 1.45;
+            font-size: 0.92rem;
+        }
+        .controls {
+            background: rgba(255, 255, 255, 0.84);
+            border-radius: 22px;
             padding: 2rem;
             margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow-soft);
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: minmax(240px, 1.2fr) repeat(3, minmax(170px, 1fr));
             gap: 1.5rem;
             align-items: center;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--surface-border);
             transition: all 0.3s ease;
+        }
+        .controls-intro h3 {
+            font-size: 1.15rem;
+            margin-bottom: 0.35rem;
+            color: var(--text-strong);
+        }
+        .controls-intro p {
+            color: var(--text-muted);
+            line-height: 1.55;
         }
         .controls:hover {
             box-shadow: 0 12px 48px rgba(0, 0, 0, 0.1);
@@ -515,13 +765,17 @@
             box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.32);
             padding: 0.45rem 0.6rem calc(0.45rem + env(safe-area-inset-bottom));
             gap: 0.4rem;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             transform: translateY(0);
             transition: transform 0.24s ease;
             will-change: transform;
         }
         .mobile-bottom-nav.is-hidden {
             transform: translateY(calc(100% + env(safe-area-inset-bottom)));
+        }
+        .mobile-bottom-nav.is-input-focused {
+            transform: translateY(calc(100% + env(safe-area-inset-bottom)));
+            pointer-events: none;
         }
         .mobile-nav-hint {
             display: none;
@@ -548,6 +802,11 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
             pointer-events: auto;
+        }
+        .mobile-nav-hint.is-suppressed {
+            opacity: 0;
+            transform: translateX(-50%) translateY(14px);
+            pointer-events: none;
         }
         .mobile-nav-btn {
             min-height: 52px;
@@ -1475,8 +1734,40 @@
                 padding-bottom: calc(86px + env(safe-area-inset-bottom));
             }
 
+            .header-layout {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-meta {
+                width: 100%;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .hero-panel {
+                grid-template-columns: 1fr;
+                margin-top: -2.3rem;
+            }
+
+            .hero-card h2 {
+                font-size: 1.65rem;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .hero-action,
+            .recent-chip {
+                width: 100%;
+            }
+
+            .hero-metrics {
+                grid-template-columns: 1fr 1fr;
+            }
+
             .container {
-                margin: 1.25rem auto;
+                margin: 0.9rem auto;
                 padding: 0 0.85rem;
             }
 
@@ -1495,21 +1786,42 @@
             }
 
             header {
-                padding: 1.5rem 1rem;
+                padding: 1.2rem 1rem 1.1rem;
             }
 
             h1 {
-                font-size: 1.65rem;
-                line-height: 1.2;
-                margin-bottom: 0.35rem;
+                font-size: clamp(1.9rem, 8vw, 2.35rem);
+                line-height: 1.04;
+                margin-bottom: 0.3rem;
+                letter-spacing: 0.02em;
+                text-wrap: balance;
+            }
+
+            .time-display {
+                font-size: 0.84rem;
+                letter-spacing: 0.07em;
             }
 
             .controls {
                 grid-template-columns: 1fr;
-                gap: 0.85rem;
-                padding: 1rem;
+                gap: 0.7rem;
+                padding: 0.85rem;
                 border-radius: 14px;
-                margin-bottom: 1rem;
+                margin-bottom: 0.85rem;
+            }
+
+            .control-group {
+                gap: 0.45rem;
+            }
+
+            .control-group label {
+                font-size: 0.76rem;
+            }
+
+            select,
+            input {
+                padding: 0.85rem 1rem;
+                font-size: 0.92rem;
             }
 
             .tab-btn {
@@ -1536,6 +1848,51 @@
 
             .line-info {
                 margin-bottom: 1rem;
+            }
+
+            .status-banner {
+                gap: 0.9rem;
+                padding: 1rem 1rem 0.95rem;
+                margin-bottom: 1rem;
+            }
+
+            .status-banner-left {
+                align-items: flex-start;
+            }
+
+            .status-banner-title {
+                font-size: 0.85rem;
+            }
+
+            .status-banner-message {
+                font-size: 0.82rem;
+                line-height: 1.35;
+            }
+
+            .status-summary-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.7rem;
+                margin-bottom: 1rem;
+            }
+
+            .status-summary-card {
+                padding: 0.95rem 1rem;
+                border-radius: 14px;
+            }
+
+            .status-summary-count {
+                font-size: 1.45rem;
+            }
+
+            .status-summary-label {
+                font-size: 0.68rem;
+                line-height: 1.35;
+            }
+
+            .refresh-status-button {
+                width: 100%;
+                min-height: 44px;
+                padding: 0.8rem 0.9rem;
             }
 
             .lines-grid {
@@ -1682,6 +2039,18 @@
         }
 
         @media (max-width: 480px) {
+            .header-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .status-summary-container {
+                grid-template-columns: 1fr;
+            }
+
             .line-btn {
                 font-size: 0.76rem;
             }
@@ -1727,15 +2096,269 @@
                 animation: none;
             }
         }
+
+        /* ─── Network Map ───────────────────────────────────────── */
+        .network-map-container {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .network-map {
+            width: 100%;
+            height: 580px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            position: relative;
+            margin-top: 0.85rem;
+        }
+        .map-controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+        .map-controls-bar h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0;
+        }
+        .map-action-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 0.85rem;
+        }
+        .map-action-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .map-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(99,102,241,0.28);
+        }
+        .map-action-btn.secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        }
+        .map-action-btn.secondary:hover {
+            box-shadow: 0 6px 16px rgba(100,116,139,0.28);
+        }
+        .map-status-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.9rem;
+        }
+        .map-status-pill {
+            padding: 0.55rem 1rem;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #1e3a8a;
+            font-size: 0.85rem;
+            font-weight: 700;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .map-note {
+            color: #475569;
+            font-size: 0.88rem;
+            line-height: 1.4;
+            flex: 1 1 220px;
+        }
+        .line-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+        .line-legend-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.38rem 0.85rem;
+            border-radius: 999px;
+            border: 2px solid transparent;
+            color: white;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: opacity 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            min-width: 104px;
+            justify-content: center;
+        }
+        .line-legend-btn:hover,
+        .line-legend-btn:focus-visible {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.22);
+            outline: none;
+        }
+        .line-legend-btn:focus-visible {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+        }
+        .legend-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+        }
+        .line-legend-btn.line-hidden {
+            opacity: 0.28;
+            box-shadow: none;
+        }
+        .map-loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.82);
+            z-index: 999;
+            border-radius: 12px;
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
+        .map-loading-pill {
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1.4rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .map-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .recenter-map-btn {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 900;
+            padding: 0.55rem 0.9rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            color: #334155;
+            display: none;
+            transition: box-shadow 0.2s ease;
+        }
+        .recenter-map-btn.visible { display: block; }
+        .recenter-map-btn:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.16); }
+        @media (max-width: 900px) {
+            .mobile-nav-btn {
+                font-size: 0.6rem;
+            }
+            .mobile-nav-btn .icon {
+                font-size: 0.92rem;
+            }
+            .network-map {
+                height: 360px;
+            }
+            .map-controls-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
   </head>
   <body>
     <header>
-        <h1>🚇 London Underground Timetable</h1>
-        <div class="time-display">London Time: <span id="currentTime">--:--</span></div>
+        <div class="header-layout">
+            <div class="header-copy">
+                <div class="header-kicker">Live network dashboard</div>
+                <h1>London Underground Timetable</h1>
+                <div class="header-subtitle">Plan routes, scan network health, and jump into live train movement from a single surface designed for quick decisions.</div>
+            </div>
+            <div class="header-meta">
+                <div class="header-meta-card">
+                    <span class="meta-label">London Time</span>
+                    <div class="time-display"><span id="currentTime">--:--</span></div>
+                </div>
+                <div class="header-meta-card">
+                    <span class="meta-label">Data Mode</span>
+                    <div class="meta-value" id="appDataMode">Static timetables + live TfL status</div>
+                </div>
+            </div>
+        </div>
     </header>
     <div class="container">
+        <section class="hero-panel" aria-label="App overview">
+            <div class="hero-card">
+                <div class="hero-label">Start Here</div>
+                <h2>Find the fastest next step without hunting through tabs.</h2>
+                <p>The app now keeps your last context, surfaces recent places, and gives direct entry points into route planning, station lookup, and live operations.</p>
+                <div class="hero-actions">
+                    <button id="quickActionPlan" class="hero-action primary" type="button">Plan a journey</button>
+                    <button id="quickActionStation" class="hero-action secondary" type="button">Search a station</button>
+                    <button id="quickActionTracking" class="hero-action secondary" type="button">Open live tracking</button>
+                </div>
+                <div class="hero-footnote">
+                    <span class="shortcut-pill">Press / to focus station search</span>
+                    <span id="heroStatusText">Loading network context…</span>
+                </div>
+                <div id="recentActivity" class="recent-activity" aria-live="polite"></div>
+            </div>
+            <div class="hero-metrics">
+                <div class="hero-metric-card">
+                    <div class="hero-metric-label">Tube lines</div>
+                    <div class="hero-metric-value" id="totalLinesMetric">--</div>
+                    <div class="hero-metric-detail">Available local timetable lines.</div>
+                </div>
+                <div class="hero-metric-card">
+                    <div class="hero-metric-label">Stations indexed</div>
+                    <div class="hero-metric-value" id="totalStationsMetric">--</div>
+                    <div class="hero-metric-detail">Combined local and lookup-ready stations.</div>
+                </div>
+                <div class="hero-metric-card">
+                    <div class="hero-metric-label">Network health</div>
+                    <div class="hero-metric-value" id="networkHealthMetric">--</div>
+                    <div class="hero-metric-detail" id="networkHealthDetail">Waiting for TfL summary.</div>
+                </div>
+                <div class="hero-metric-card emphasis">
+                    <div class="hero-metric-label">Live operations</div>
+                    <div class="hero-metric-value" id="liveOpsMetric">Stand by</div>
+                    <div class="hero-metric-detail" id="liveOpsDetail">Connecting to real-time train updates.</div>
+                </div>
+            </div>
+        </section>
         <div class="controls">
+            <div class="controls-intro">
+                <h3>Refine the feed</h3>
+                <p>Trim the view to the services you care about, then move between lines, stations, routes, and live operations without losing your place.</p>
+            </div>
             <div class="control-group">
                 <label>View:</label>
                 <select id="viewMode" aria-label="View mode filter">
@@ -1801,6 +2424,7 @@
             <button class="tab-btn" data-tab="stations" onclick="switchTab('stations')">Station Information</button>
             <button class="tab-btn" data-tab="planner" onclick="switchTab('planner')">Route Planner</button>
             <button class="tab-btn" data-tab="tracking" onclick="switchTab('tracking')">Live Tracking</button>
+            <button class="tab-btn" data-tab="map" onclick="switchTab('map')">System Map</button>
         </div>
 
         <nav class="mobile-bottom-nav" aria-label="Primary navigation">
@@ -1819,6 +2443,10 @@
             <button class="mobile-nav-btn tab-btn" data-tab="tracking" type="button" onclick="switchTab('tracking')">
                 <span class="icon" aria-hidden="true">📡</span>
                 <span>Tracking</span>
+            </button>
+            <button class="mobile-nav-btn tab-btn" data-tab="map" type="button" onclick="switchTab('map')">
+                <span class="icon" aria-hidden="true">🗺️</span>
+                <span>Map</span>
             </button>
         </nav>
         <button id="mobileNavHint" class="mobile-nav-hint" type="button" aria-label="Show navigation">Show menu</button>
@@ -1884,6 +2512,7 @@
                         <button class="swap-button" type="button" onclick="swapPlannerStations()">Swap</button>
                     </div>
                 </div>
+                <div id="plannerMap" class="planner-map"></div>
                 <div id="plannerResults" class="planner-results">
                     <div class="no-route">Enter origin and destination to find a route.</div>
                 </div>
@@ -1909,9 +2538,34 @@
                 <div id="selectedTrainInfo" class="selected-train-info"></div>
                 <div class="tracking-map-container">
                     <div id="trackingMap" class="tracking-map"></div>
+                    <button id="recenterMapBtn" class="recenter-map-btn" type="button" onclick="recenterTrackingMap()" aria-label="Recenter map">⊕ Recenter</button>
                 </div>
                 <div class="trains-grid" id="trainsContainer">
                     <div class="no-trains">Loading live train data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Map Tab -->
+        <div id="map-tab" class="tab-content">
+            <div class="network-map-container">
+                <div class="map-controls-bar">
+                    <h3>🗺️ Underground System Map</h3>
+                    <div class="map-action-row">
+                        <button class="map-action-btn" type="button" onclick="showAllNetworkLines()">Show All Lines</button>
+                        <button class="map-action-btn" type="button" onclick="recenterNetworkMap()">Reset View</button>
+                        <button class="map-action-btn secondary" type="button" onclick="hideAllNetworkLines()">Hide All</button>
+                    </div>
+                    <div class="map-status-row">
+                        <div id="networkMapStatus" class="map-status-pill">Loading network map…</div>
+                        <div class="map-note">Tap a line badge to show or hide its route.</div>
+                    </div>
+                </div>
+                <div class="line-legend" id="lineLegend"></div>
+                <div id="networkMap" class="network-map">
+                    <div class="map-loading-overlay" id="networkMapLoading">
+                        <div class="map-loading-pill"><div class="map-spinner"></div><span id="networkMapLoadingText">Loading line routes…</span></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1946,10 +2600,23 @@
             'waterloo': '#95CDBA'
         };
 
+        const APP_STATE_KEY = 'lut-dashboard-state-v2';
+        const defaultAppState = {
+            activeTab: 'lines',
+            selectedLine: '',
+            lastStation: '',
+            plannerOrigin: '',
+            plannerDestination: '',
+            viewMode: 'all',
+            sortMode: 'time',
+            statusFilter: 'all'
+        };
+
         let timetables = {};
         let stationsData = {};
         let activeLineIndex = -1;
         let activeLine = null;
+        let appState = { ...defaultAppState };
         let lineStatusCache = {}; // Cache for line statuses
         let lastStatusCacheUpdate = 0;
         const STATUS_CACHE_DURATION = 60000; // 1 minute
@@ -1981,12 +2648,222 @@
         let trackingLineFilter = null;
         let lastTrackingMapKey = '';
         let lastTrackingViewportKey = '';
+        let appInitialized = false;
         let mapUpdateInProgress = false;
         let pendingTrackingMapRefresh = false;
         let trackingMapUserMoved = false;
         let trackingMapProgrammaticMove = false;
+        let trackingConnected = false;
+        let lastSummarySnapshot = null;
         const stationCoordinateCache = {};
         const lineStationCoordsCache = {};
+
+        // Network Map
+        let networkMap = null;
+        let networkRouteLayerMap = new Map();
+        let networkLineVisibility = {};
+        let networkMapInitialized = false;
+        let networkMapDrawing = false;
+
+        function loadAppState() {
+            try {
+                const saved = window.localStorage.getItem(APP_STATE_KEY);
+                if (!saved) {
+                    appState = { ...defaultAppState };
+                    return;
+                }
+                appState = { ...defaultAppState, ...JSON.parse(saved) };
+            } catch (error) {
+                console.warn('Unable to load saved app state:', error.message);
+                appState = { ...defaultAppState };
+            }
+        }
+
+        function saveAppState(patch = {}) {
+            appState = { ...appState, ...patch };
+            try {
+                window.localStorage.setItem(APP_STATE_KEY, JSON.stringify(appState));
+            } catch (error) {
+                console.warn('Unable to persist app state:', error.message);
+            }
+            renderHeroSummary();
+            renderRecentActivity();
+        }
+
+        function applySavedPreferences() {
+            const viewMode = document.getElementById('viewMode');
+            const sortMode = document.getElementById('sortMode');
+            const statusFilter = document.getElementById('statusFilter');
+            const stationSearchInput = document.getElementById('stationSearchInput');
+            const plannerOriginInput = document.getElementById('plannerOriginInput');
+            const plannerDestinationInput = document.getElementById('plannerDestinationInput');
+
+            if (viewMode) viewMode.value = appState.viewMode || defaultAppState.viewMode;
+            if (sortMode) sortMode.value = appState.sortMode || defaultAppState.sortMode;
+            if (statusFilter) statusFilter.value = appState.statusFilter || defaultAppState.statusFilter;
+            if (stationSearchInput && appState.lastStation) stationSearchInput.value = appState.lastStation;
+            if (plannerOriginInput && appState.plannerOrigin) plannerOriginInput.value = appState.plannerOrigin;
+            if (plannerDestinationInput && appState.plannerDestination) plannerDestinationInput.value = appState.plannerDestination;
+        }
+
+        function renderRecentActivity() {
+            const recentActivity = document.getElementById('recentActivity');
+            if (!recentActivity) return;
+
+            const chips = [];
+            if (appState.selectedLine) {
+                chips.push(`<button class="recent-chip" type="button" onclick="resumeRecentSelection('line')">Resume ${appState.selectedLine} line</button>`);
+            }
+            if (appState.lastStation) {
+                chips.push(`<button class="recent-chip" type="button" onclick="resumeRecentSelection('station')">Reopen ${appState.lastStation}</button>`);
+            }
+            if (appState.plannerOrigin && appState.plannerDestination) {
+                chips.push(`<button class="recent-chip" type="button" onclick="resumeRecentSelection('planner')">Retry ${appState.plannerOrigin} to ${appState.plannerDestination}</button>`);
+            }
+
+            recentActivity.innerHTML = chips.length
+                ? chips.join('')
+                : '<div class="recent-chip empty">Your recent line, station, and route choices will appear here.</div>';
+        }
+
+        function renderHeroSummary() {
+            const totalLinesEl = document.getElementById('totalLinesMetric');
+            const totalStationsEl = document.getElementById('totalStationsMetric');
+            const networkHealthMetric = document.getElementById('networkHealthMetric');
+            const networkHealthDetail = document.getElementById('networkHealthDetail');
+            const liveOpsMetric = document.getElementById('liveOpsMetric');
+            const liveOpsDetail = document.getElementById('liveOpsDetail');
+            const heroStatusText = document.getElementById('heroStatusText');
+
+            if (totalLinesEl) totalLinesEl.textContent = Object.keys(timetables).length || '--';
+            if (totalStationsEl) totalStationsEl.textContent = allStations.length || '--';
+
+            if (lastSummarySnapshot && networkHealthMetric && networkHealthDetail) {
+                const { healthy = 0, total = 0, minor = 0, disrupted = 0 } = lastSummarySnapshot;
+                networkHealthMetric.textContent = total ? `${healthy}/${total}` : `${healthy}`;
+                networkHealthDetail.textContent = `${minor} minor issue line${minor === 1 ? '' : 's'}, ${disrupted} disrupted.`;
+            }
+
+            if (liveOpsMetric && liveOpsDetail) {
+                liveOpsMetric.textContent = trackingConnected ? 'Connected' : 'Reconnecting';
+                liveOpsDetail.textContent = trackingConnected
+                    ? `${currentTrains.length || 0} live train${currentTrains.length === 1 ? '' : 's'} in the current feed.`
+                    : 'Waiting for the live Socket.io feed to settle.';
+            }
+
+            if (heroStatusText) {
+                const focusText = appState.lastStation
+                    ? `Last station: ${appState.lastStation}.`
+                    : appState.selectedLine
+                        ? `Last line: ${appState.selectedLine}.`
+                        : 'Choose a line, station, or route to build a working context.';
+                heroStatusText.textContent = focusText;
+            }
+        }
+
+        function focusStationSearch() {
+            switchTab('stations');
+            window.requestAnimationFrame(() => {
+                const input = document.getElementById('stationSearchInput');
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            });
+        }
+
+        function resumeRecentSelection(kind) {
+            if (kind === 'line' && appState.selectedLine && timetables[appState.selectedLine]) {
+                const lineNames = Object.keys(timetables);
+                const index = lineNames.indexOf(appState.selectedLine);
+                switchTab('lines');
+                selectLine(appState.selectedLine, index >= 0 ? index : 0);
+                return;
+            }
+
+            if (kind === 'station' && appState.lastStation) {
+                switchTab('stations');
+                const searchInput = document.getElementById('stationSearchInput');
+                if (searchInput) {
+                    searchInput.value = appState.lastStation;
+                }
+                setTimeout(() => showStationInfo(appState.lastStation), 80);
+                return;
+            }
+
+            if (kind === 'planner' && appState.plannerOrigin && appState.plannerDestination) {
+                switchTab('planner');
+                document.getElementById('plannerOriginInput').value = appState.plannerOrigin;
+                document.getElementById('plannerDestinationInput').value = appState.plannerDestination;
+                setTimeout(() => planRoute(), 80);
+            }
+        }
+
+        function bindExperienceEnhancements() {
+            if (document.body.dataset.experienceBound === 'true') {
+                return;
+            }
+            document.body.dataset.experienceBound = 'true';
+
+            document.getElementById('quickActionPlan')?.addEventListener('click', () => {
+                switchTab('planner');
+                document.getElementById('plannerOriginInput')?.focus();
+            });
+
+            document.getElementById('quickActionStation')?.addEventListener('click', () => {
+                focusStationSearch();
+            });
+
+            document.getElementById('quickActionTracking')?.addEventListener('click', () => {
+                switchTab('tracking');
+            });
+
+            document.getElementById('stationSearchInput')?.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    searchStation();
+                }
+            });
+
+            document.getElementById('plannerOriginInput')?.addEventListener('input', (event) => {
+                saveAppState({ plannerOrigin: event.target.value.trim() });
+            });
+
+            document.getElementById('plannerDestinationInput')?.addEventListener('input', (event) => {
+                saveAppState({ plannerDestination: event.target.value.trim() });
+            });
+
+            document.addEventListener('keydown', (event) => {
+                const isTyping = event.target && event.target.matches('input, textarea, select, [contenteditable="true"]');
+                if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey && !isTyping) {
+                    event.preventDefault();
+                    focusStationSearch();
+                }
+            });
+
+            renderRecentActivity();
+            renderHeroSummary();
+        }
+
+        function restoreAppContext() {
+            applySavedPreferences();
+
+            const lineNames = Object.keys(timetables);
+            const preferredLine = appState.selectedLine && timetables[appState.selectedLine]
+                ? appState.selectedLine
+                : lineNames[0];
+
+            if (preferredLine) {
+                const preferredIndex = lineNames.indexOf(preferredLine);
+                selectLine(preferredLine, preferredIndex >= 0 ? preferredIndex : 0);
+            }
+
+            const activeTabName = appState.activeTab || 'lines';
+            switchTab(activeTabName);
+
+            if (activeTabName === 'stations' && appState.lastStation) {
+                setTimeout(() => showStationInfo(appState.lastStation), 80);
+            }
+        }
 
         function updateTime() {
             const now = new Date();
@@ -2061,15 +2938,13 @@
                 
                 allStations = Array.from(stationSet).sort();
                 console.log('Loaded', allStations.length, 'stations');
-                
-                renderLines();
+
                 setupStationSearch();
                 setupRoutePlanner();
+                renderHeroSummary();
+                renderRecentActivity();
                 renderServiceAlerts().catch(error => console.warn('Could not render service alerts:', error.message));
-                const firstLine = Object.keys(timetables)[0];
-                if (firstLine) {
-                    selectLine(firstLine, 0);
-                }
+                restoreAppContext();
             } catch (error) {
                 console.error('Error loading data:', error);
             }
@@ -2122,16 +2997,20 @@
           const summaryData = await fetchStatusSummary();
           if (!summaryData || !summaryData.summary) {
             document.getElementById('summaryUpdatedAt').textContent = 'Unavailable';
+                        lastSummarySnapshot = null;
+                        renderHeroSummary();
             return;
           }
 
           const { healthy, minor, disrupted, unknown, total } = summaryData.summary;
           const updatedAt = summaryData.lastUpdated ? new Date(summaryData.lastUpdated) : new Date();
+                    lastSummarySnapshot = { healthy, minor, disrupted, unknown, total };
 
           document.getElementById('healthyCount').textContent = healthy;
           document.getElementById('minorCount').textContent = minor;
           document.getElementById('disruptedCount').textContent = disrupted;
           document.getElementById('summaryUpdatedAt').textContent = `${updatedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} (${total || 0} lines)`;
+                    renderHeroSummary();
         }
 
         // Search station using TfL API
@@ -2216,27 +3095,30 @@
           const stationMapElement = document.getElementById('stationMap');
           if (stationMapElement && !stationMap) {
             stationMap = L.map('stationMap', { center: [51.5074, -0.1278], zoom: 12, attributionControl: false });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
               maxZoom: 19,
-              attribution: '&copy; OpenStreetMap contributors'
+              attribution: '\u00a9 OpenStreetMap contributors, \u00a9 CARTO',
+              subdomains: 'abcd'
             }).addTo(stationMap);
           }
 
           const plannerMapElement = document.getElementById('plannerMap');
           if (plannerMapElement && !plannerMap) {
             plannerMap = L.map('plannerMap', { center: [51.5074, -0.1278], zoom: 11, attributionControl: false });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
               maxZoom: 19,
-              attribution: '&copy; OpenStreetMap contributors'
+              attribution: '\u00a9 OpenStreetMap contributors, \u00a9 CARTO',
+              subdomains: 'abcd'
             }).addTo(plannerMap);
           }
 
           const trackingMapElement = document.getElementById('trackingMap');
           if (trackingMapElement && !trackingMap) {
             trackingMap = L.map('trackingMap', { center: [51.5074, -0.1278], zoom: 10, attributionControl: false });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
               maxZoom: 19,
-              attribution: '&copy; OpenStreetMap contributors'
+              attribution: '\u00a9 OpenStreetMap contributors, \u00a9 CARTO',
+              subdomains: 'abcd'
             }).addTo(trackingMap);
 
                         const markUserMapMove = () => {
@@ -2247,6 +3129,10 @@
 
                         trackingMap.on('dragstart', markUserMapMove);
                         trackingMap.on('zoomstart', markUserMapMove);
+                        trackingMap.on('moveend', () => {
+                            const btn = document.getElementById('recenterMapBtn');
+                            if (btn) btn.classList.toggle('visible', !!trackingMapUserMoved);
+                        });
           }
         }
 
@@ -2279,6 +3165,9 @@
                     lastTrackingViewportKey = '';
                     trackingMapUserMoved = false;
 
+                    const recenterBtn = document.getElementById('recenterMapBtn');
+                    if (recenterBtn) recenterBtn.classList.remove('visible');
+
                     if (resetView && trackingMap) {
                         trackingMapProgrammaticMove = true;
                         trackingMap.setView([51.5074, -0.1278], 10);
@@ -2304,7 +3193,7 @@
             fillOpacity: 1.0
           }).addTo(stationMap).bindPopup(`<strong>${label}</strong>`).openPopup();
 
-          for (const line of lines.slice(0, 3)) {
+          for (const line of lines) {
             const color = colorHexMap[lineColors[line] || 'central'];
             const routes = await drawLineRouteOnMap(line, stationMap, color);
             if (routes) {
@@ -2313,6 +3202,14 @@
           }
           stationMap.invalidateSize();
         }
+
+                function recenterTrackingMap() {
+                    if (!trackingMap) return;
+                    trackingMapUserMoved = false;
+                    const btn = document.getElementById('recenterMapBtn');
+                    if (btn) btn.classList.remove('visible');
+                    updateTrackingMap().catch(console.error);
+                }
 
                 async function updateTrackingMap() {
                     if (!trackingMap) return;
@@ -2370,11 +3267,11 @@
 
             if (!lineLayers) {
               const routes = await drawLineRouteOnMap(line, trackingMap, color, {
-                weight: selectedLine ? 10 : 5,
-                opacity: selectedLine ? 0.95 : 0.75,
-                glowWeight: selectedLine ? 18 : 12,
-                glowOpacity: selectedLine ? 0.22 : 0.15,
-                dashArray: selectedLine ? null : '8, 8'
+                weight: selectedLine ? 8 : 4,
+                opacity: selectedLine ? 0.95 : 0.8,
+                glowWeight: selectedLine ? 16 : 8,
+                glowOpacity: selectedLine ? 0.22 : 0.12,
+                dashArray: null
               });
               if (routes) {
                 trackingRouteLayerMap.set(line, routes);
@@ -2385,9 +3282,9 @@
                 if (layer && layer.setStyle) {
                   layer.setStyle({
                     color,
-                    weight: selectedLine ? 10 : 5,
-                    opacity: selectedLine ? 0.95 : 0.75,
-                    dashArray: selectedLine ? null : '8, 8'
+                    weight: selectedLine ? 8 : 4,
+                    opacity: selectedLine ? 0.95 : 0.8,
+                    dashArray: null
                   });
                 }
               });
@@ -2524,6 +3421,188 @@
                     }
         }
 
+        /* ─── Network Map functions ───────────────────────────────────────── */
+
+        function initializeNetworkMap() {
+            const el = document.getElementById('networkMap');
+            if (!el || networkMap) return;
+
+            networkMap = L.map('networkMap', {
+                center: [51.5074, -0.1278],
+                zoom: 11,
+                zoomControl: true,
+                attributionControl: true
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(networkMap);
+
+            // Initialise all lines as visible
+            Object.keys(timetables).forEach(line => { networkLineVisibility[line] = true; });
+            renderNetworkLineLegend();
+        }
+
+        async function drawNetworkLines() {
+            if (!networkMap || networkMapDrawing) return;
+            networkMapDrawing = true;
+
+            const loadingEl = document.getElementById('networkMapLoading');
+            const loadingText = document.getElementById('networkMapLoadingText');
+            if (loadingEl) loadingEl.style.display = 'flex';
+
+            const lineNames = Object.keys(timetables);
+            let loaded = 0;
+
+            await Promise.allSettled(lineNames.map(async (lineName) => {
+                if (!networkLineVisibility[lineName]) return;
+                if (networkRouteLayerMap.has(lineName)) { loaded++; return; }
+
+                const colorKey = lineColors[lineName] || 'central';
+                const color = colorHexMap[colorKey];
+
+                const layers = await drawLineRouteOnMap(lineName, networkMap, color, {
+                    weight: 4,
+                    opacity: 0.88,
+                    glowWeight: 10,
+                    glowOpacity: 0.14,
+                    dashArray: null
+                });
+
+                if (layers) {
+                    networkRouteLayerMap.set(lineName, layers);
+                    // Bind a tooltip so users can hover to see the line name
+                    layers[0].bindTooltip(`<strong>${lineName} line</strong>`, {
+                        permanent: false,
+                        direction: 'auto',
+                        className: 'leaflet-line-tooltip'
+                    });
+                }
+                loaded++;
+                if (loadingText) loadingText.textContent = `Loading line routes… ${loaded}/${lineNames.length}`;
+            }));
+
+            if (loadingEl) loadingEl.style.display = 'none';
+            networkMapDrawing = false;
+            networkMapInitialized = true;
+            updateNetworkMapStatus();
+            networkMap.invalidateSize();
+        }
+
+        function renderNetworkLineLegend() {
+            const legend = document.getElementById('lineLegend');
+            if (!legend) return;
+            legend.innerHTML = Object.keys(timetables).map(lineName => {
+                const colorKey = lineColors[lineName] || 'central';
+                const color = colorHexMap[colorKey];
+                const isVisible = networkLineVisibility[lineName] !== false;
+                const statusInfo = getLineStatusFromCache(lineName);
+                const statusColor = statusInfo.class === 'status-healthy' ? '#10b981' : statusInfo.class === 'status-disrupted' ? '#ef4444' : '#f59e0b';
+                return `<button type="button" class="line-legend-btn${isVisible ? '' : ' line-hidden'}"
+                    style="background-color:${color}; border-color:${color};"
+                    onclick="toggleNetworkLine('${lineName}')" title="Tap to ${isVisible ? 'hide' : 'show'} ${lineName} line">
+                        <span>${lineName}</span><span class="legend-status-dot" style="background:${statusColor};"></span>
+                    </button>`;
+            }).join('');
+            updateNetworkMapStatus();
+        }
+
+        function toggleNetworkLine(lineName) {
+            networkLineVisibility[lineName] = !networkLineVisibility[lineName];
+            const layers = networkRouteLayerMap.get(lineName);
+            if (layers) {
+                layers.forEach(layer => {
+                    if (networkLineVisibility[lineName]) {
+                        layer.addTo(networkMap);
+                    } else {
+                        networkMap.removeLayer(layer);
+                    }
+                });
+            } else if (networkLineVisibility[lineName] && networkMap) {
+                // Draw the line on demand
+                const colorKey = lineColors[lineName] || 'central';
+                const color = colorHexMap[colorKey];
+                drawLineRouteOnMap(lineName, networkMap, color, {
+                    weight: 4, opacity: 0.88, glowWeight: 10, glowOpacity: 0.14, dashArray: null
+                }).then(layers => {
+                    if (layers) {
+                        networkRouteLayerMap.set(lineName, layers);
+                        layers[0].bindTooltip(`<strong>${lineName} line</strong>`, { permanent: false, direction: 'auto', className: 'leaflet-line-tooltip' });
+                    }
+                }).catch(console.error);
+            }
+            renderNetworkLineLegend();
+        }
+
+        function showAllNetworkLines() {
+            if (!networkMap) return;
+            Object.keys(timetables).forEach(line => {
+                networkLineVisibility[line] = true;
+                const layers = networkRouteLayerMap.get(line);
+                if (layers) layers.forEach(l => l.addTo(networkMap));
+            });
+            renderNetworkLineLegend();
+            // Draw any lines not yet fetched
+            if (!networkMapDrawing) drawNetworkLines().catch(console.error);
+        }
+
+        function recenterNetworkMap() {
+            if (!networkMap) return;
+            const bounds = [];
+            for (const layers of networkRouteLayerMap.values()) {
+                if (!layers || !layers.length) continue;
+                const layer = layers[0];
+                if (layer && layer.getLatLngs) {
+                    const coordinates = layer.getLatLngs();
+                    const flatCoords = Array.isArray(coordinates[0]) ? coordinates.flat() : coordinates;
+                    flatCoords.forEach(coord => {
+                        if (coord && coord.lat != null && coord.lng != null) {
+                            bounds.push([coord.lat, coord.lng]);
+                        }
+                    });
+                }
+            }
+            if (bounds.length) {
+                networkMap.fitBounds(bounds, { padding: [40, 40] });
+            } else {
+                networkMap.setView([51.5074, -0.1278], 11);
+            }
+            networkMap.invalidateSize();
+        }
+
+        function updateNetworkMapStatus() {
+            const statusEl = document.getElementById('networkMapStatus');
+            if (!statusEl) return;
+            const totalLines = Object.keys(timetables).length;
+            const visibleLines = Object.keys(networkLineVisibility).filter(line => networkLineVisibility[line]).length;
+            const hiddenLines = totalLines - visibleLines;
+            const statusCounts = { healthy: 0, minor: 0, disrupted: 0, unknown: 0 };
+
+            Object.keys(timetables).forEach(lineName => {
+                const status = getLineStatusFromCache(lineName).class;
+                if (status === 'status-healthy') statusCounts.healthy += 1;
+                else if (status === 'status-disrupted') statusCounts.disrupted += 1;
+                else if (status === 'status-minor') statusCounts.minor += 1;
+                else statusCounts.unknown += 1;
+            });
+
+            statusEl.textContent = `${visibleLines}/${totalLines} visible${hiddenLines ? ` · ${hiddenLines} hidden` : ''} · ${statusCounts.healthy} good · ${statusCounts.minor} minor · ${statusCounts.disrupted} disrupted`;
+        }
+
+        function hideAllNetworkLines() {
+            if (!networkMap) return;
+            Object.keys(timetables).forEach(line => {
+                networkLineVisibility[line] = false;
+                const layers = networkRouteLayerMap.get(line);
+                if (layers) layers.forEach(l => networkMap.removeLayer(l));
+            });
+            renderNetworkLineLegend();
+        }
+
+        /* ─────────────────────────────────────────────────────────────────── */
+
         function renderLines() {
             const linesContainer = document.getElementById('linesContainer');
             linesContainer.innerHTML = '';
@@ -2535,8 +3614,13 @@
                 const colorClass = lineColors[line] || 'central';
                 const statusInfo = getLineStatusFromCache(line);
                 btn.className = `line-btn ${colorClass}`;
+                btn.dataset.line = line;
+                btn.setAttribute('aria-pressed', activeLine === line ? 'true' : 'false');
                 btn.innerHTML = `<span>${line}</span><span class="line-status-chip ${statusInfo.class}">${statusInfo.text}</span>`;
                 btn.onclick = () => selectLine(line, index);
+                if (activeLine === line) {
+                    btn.classList.add('active');
+                }
                 linesContainer.appendChild(btn);
             });
         }
@@ -2544,12 +3628,14 @@
         async function selectLine(line, index) {
             activeLine = line;
             activeLineIndex = index;
+            saveAppState({ selectedLine: line, activeTab: 'lines' });
             const data = timetables[line];
             
             // Render line info and schedules immediately
             renderLineInfo(line, null);
             renderStations(data.stations, line);
             renderSchedules(data.schedules, line);
+            renderHeroSummary();
             
             // Fetch and update status asynchronously, then re-render line info with status
             renderLineStatus(line)
@@ -2565,6 +3651,7 @@
             
             document.querySelectorAll('.line-btn').forEach((btn, idx) => {
                 btn.classList.toggle('active', idx === index);
+                btn.setAttribute('aria-pressed', idx === index ? 'true' : 'false');
             });
         }
 
@@ -3316,6 +4403,12 @@
             const originRaw = originInput.value.trim();
             const destinationRaw = destinationInput.value.trim();
 
+            saveAppState({
+                activeTab: 'planner',
+                plannerOrigin: originRaw,
+                plannerDestination: destinationRaw
+            });
+
             if (!originRaw || !destinationRaw) {
                 results.innerHTML = '<div class="no-route">Enter both origin and destination stations to plan your route.</div>';
                 return;
@@ -3440,12 +4533,14 @@
             const temp = originInput.value;
             originInput.value = destinationInput.value;
             destinationInput.value = temp;
+            saveAppState({ plannerOrigin: originInput.value.trim(), plannerDestination: destinationInput.value.trim() });
             planRoute();
         }
 
         function searchStation() {
             const query = document.getElementById('stationSearchInput').value.trim();
             if (query.length === 0) return;
+            saveAppState({ lastStation: query, activeTab: 'stations' });
             showStationInfo(query);
         }
 
@@ -3476,6 +4571,7 @@
             
             const servingLines = stationInfo.lines;
             const zone = stationInfo.zone;
+            saveAppState({ lastStation: stationName, activeTab: 'stations' });
 
             renderStationStatus(servingLines, stationName).catch(() => {
                 hideStatusBanner();
@@ -3580,11 +4676,12 @@
             // Reset stationMap to allow re-initialization for new station
             stationMap = null;
 
+            const stationServingLines = servingLines;
             setTimeout(async () => {
                 initializeMaps();
                 const coords = await getStopPointCoords(stationName);
                 if (coords) {
-                    updateStationMap(coords.lat, coords.lon, stationName);
+                    updateStationMap(coords.lat, coords.lon, stationName, stationServingLines);
                 }
             }, 50);
         }
@@ -3625,6 +4722,7 @@
             document.querySelectorAll(`.tab-btn[data-tab="${tabName}"]`).forEach(button => {
                 button.classList.add('active');
             });
+            saveAppState({ activeTab: tabName });
 
             const mobileNav = document.querySelector('.mobile-bottom-nav');
             if (mobileNav) {
@@ -3643,6 +4741,7 @@
             }
             if (tabName === 'planner') {
                 setTimeout(() => {
+                    initializeMaps();
                     if (plannerMap) {
                         plannerMap.invalidateSize();
                     }
@@ -3651,9 +4750,23 @@
                     }
                 }, 100);
             }
+            if (tabName === 'map') {
+                setTimeout(() => {
+                    if (!networkMap) {
+                        initializeNetworkMap();
+                    }
+                    if (networkMap) {
+                        networkMap.invalidateSize();
+                        if (!networkMapInitialized && !networkMapDrawing) {
+                            drawNetworkLines().catch(console.error);
+                        }
+                    }
+                }, 100);
+            }
         }
 
         document.getElementById('viewMode').addEventListener('change', () => {
+            saveAppState({ viewMode: document.getElementById('viewMode').value });
             if (activeLine) {
                 const data = timetables[activeLine];
                 renderSchedules(data.schedules, activeLine);
@@ -3661,6 +4774,7 @@
         });
 
         document.getElementById('sortMode').addEventListener('change', () => {
+            saveAppState({ sortMode: document.getElementById('sortMode').value });
             if (activeLine) {
                 const data = timetables[activeLine];
                 renderSchedules(data.schedules, activeLine);
@@ -3668,6 +4782,7 @@
         });
 
         document.getElementById('statusFilter').addEventListener('change', () => {
+            saveAppState({ statusFilter: document.getElementById('statusFilter').value });
             renderLines();
         });
 
@@ -3682,6 +4797,7 @@
         function updateTrackingUpdatedAt() {
             const updatedAt = new Date();
             document.getElementById('trackingUpdatedAt').textContent = updatedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            renderHeroSummary();
         }
 
         async function refreshLiveTrains() {
@@ -3744,6 +4860,7 @@
         }
 
         function updateTrackingStatus(connected) {
+            trackingConnected = connected;
             const statusEl = document.getElementById('trackingStatus');
             if (connected) {
                 statusEl.className = 'tracking-status connected';
@@ -3752,6 +4869,7 @@
                 statusEl.className = 'tracking-status disconnected';
                 statusEl.innerHTML = '<span class="pulse"></span>Attempting to reconnect...';
             }
+            renderHeroSummary();
         }
 
         function renderLiveTrains() {
@@ -3939,13 +5057,40 @@
             let ticking = false;
             let hintTimer = null;
 
+            const isEditableElement = (element) => {
+                if (!element || !(element instanceof Element)) {
+                    return false;
+                }
+
+                return element.matches('input, textarea, select, [contenteditable="true"]');
+            };
+
+            const isInputFocused = () => {
+                const focusedElement = document.activeElement;
+                return isEditableElement(focusedElement);
+            };
+
             const hideHint = () => {
                 if (!mobileNavHint) return;
                 mobileNavHint.classList.remove('visible');
             };
 
+            const suppressHint = () => {
+                if (!mobileNavHint) return;
+                mobileNavHint.classList.add('is-suppressed');
+                hideHint();
+            };
+
+            const unsuppressHint = () => {
+                if (!mobileNavHint) return;
+                mobileNavHint.classList.remove('is-suppressed');
+            };
+
             const showHintBriefly = () => {
                 if (!mobileNavHint) return;
+                if (mobileNavHint.classList.contains('is-suppressed')) {
+                    return;
+                }
                 mobileNavHint.classList.add('visible');
                 if (hintTimer) {
                     clearTimeout(hintTimer);
@@ -3956,25 +5101,31 @@
             };
 
             const revealNav = () => {
+                mobileNav.classList.remove('is-input-focused');
                 mobileNav.classList.remove('is-hidden');
+                unsuppressHint();
                 hideHint();
             };
 
             const hideNav = () => {
+                mobileNav.classList.remove('is-input-focused');
+                unsuppressHint();
                 mobileNav.classList.add('is-hidden');
                 showHintBriefly();
             };
 
+            const hideNavForInputFocus = () => {
+                mobileNav.classList.remove('is-hidden');
+                mobileNav.classList.add('is-input-focused');
+                suppressHint();
+            };
+
             const isInteractingWithInputs = () => {
-                const focusedElement = document.activeElement;
-                if (focusedElement && (
-                    focusedElement.matches('input, textarea, select, [contenteditable="true"]') ||
-                    focusedElement.closest('.station-search, .planner-header, .planner-field')
-                )) {
+                if (isInputFocused()) {
                     return true;
                 }
 
-                return !!document.querySelector('.suggestions-list.active');
+                return !!document.querySelector('.suggestions-list.active, .route-suggestions-list.active');
             };
 
             const applyNavVisibility = () => {
@@ -3988,14 +5139,14 @@
                     return;
                 }
 
-                if (currentScrollY <= TOP_SAFE_ZONE) {
-                    revealNav();
+                if (isInteractingWithInputs()) {
+                    hideNavForInputFocus();
                     lastScrollY = currentScrollY;
                     ticking = false;
                     return;
                 }
 
-                if (isInteractingWithInputs()) {
+                if (currentScrollY <= TOP_SAFE_ZONE) {
                     revealNav();
                     lastScrollY = currentScrollY;
                     ticking = false;
@@ -4033,18 +5184,35 @@
                 revealNav();
             };
 
+            const onFocusChange = () => {
+                applyNavVisibility();
+            };
+
             window.addEventListener('scroll', onScroll, { passive: true });
             window.addEventListener('resize', onResize);
             window.addEventListener('touchstart', onTouchStart, { passive: true });
+            document.addEventListener('focusin', onFocusChange);
+            document.addEventListener('focusout', () => {
+                window.requestAnimationFrame(onFocusChange);
+            });
 
             if (mobileNavHint) {
                 mobileNavHint.addEventListener('click', () => {
                     revealNav();
                 });
             }
+
+            applyNavVisibility();
         }
 
         function initializeApp() {
+            if (appInitialized) {
+                return;
+            }
+            appInitialized = true;
+            loadAppState();
+            applySavedPreferences();
+            bindExperienceEnhancements();
             loadData();
             initializeMaps();
             setupMobileNavAutoHide();

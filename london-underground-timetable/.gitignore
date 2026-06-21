@@ -13,3 +13,8 @@ Thumbs.db
 # Editor directories and files
 .vscode/
 .idea/
+
+# Release artifacts
+*.tgz
+*.zip
+.release-zip-staging/

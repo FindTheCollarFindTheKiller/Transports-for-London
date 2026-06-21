@@ -10,7 +10,7 @@ This application integrates with the Transport for London (TfL) API to provide r
 - **Description**: Fetches all London Underground tube lines
 - **TfL API**: `GET /Line/Mode/tube`
 - **Response**: Array of line objects with name and ID
-- **Caching**: 5 minutes to reduce API calls
+- **Caching**: 10 minutes to reduce API calls
 
 ### 2. **Line Status Endpoint**
 - **Endpoint**: `/api/line/:lineId/status`
@@ -65,7 +65,7 @@ function makeApiRequest(path) {
 
 // Caching mechanism
 const cachedLines = null;
-const CACHE_DURATION = 300000; // 5 minutes
+const CACHE_DURATION = 600000; // 10 minutes
 ```
 
 ### Client-Side Integration (index.html)
@@ -86,7 +86,7 @@ async function searchStationWithTfL(query)
 
 ### Live Train Tracking
 1. Server maintains WebSocket connection with connected clients
-2. Every 2 seconds:
+2. Every 30 seconds while at least one client is connected:
    - Load latest train data
    - Simulate realistic train movements
    - Broadcast updates to all connected clients
@@ -177,11 +177,16 @@ curl http://localhost:3000/api/stoppoint/1000049/arrivals
 
 ## Performance Considerations
 
-1. **Caching**: Lines data is cached for 5 minutes to reduce API calls
+1. **Caching**: Lines data is cached for 10 minutes to reduce API calls
 2. **Error Recovery**: Failed API calls gracefully fall back to local data
 3. **WebSocket Efficiency**: Uses Socket.io for efficient real-time communication
 4. **Rate Limiting**: Respects TfL API rate limits
 5. **Bandwidth**: Only essential data is transmitted over WebSocket
+
+## Journey Planning Notes
+
+- The server resolves station searches to stop-point coordinates before calling TfL Journey Planner.
+- If TfL returns no usable itinerary, the app falls back to timetable-derived local routes instead of failing the request.
 
 ## Future Enhancements
 
