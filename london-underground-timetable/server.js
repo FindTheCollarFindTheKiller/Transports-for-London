@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
 const https = require('https');
+const { URL } = require('url');
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -15,6 +16,8 @@ const PORT = 3000;
 
 // TfL API Configuration
 const TFL_API_BASE = 'https://api.tfl.gov.uk';
+const TFL_APP_ID = process.env.TFL_APP_ID || '';
+const TFL_APP_KEY = process.env.TFL_APP_KEY || '';
 // Using public API without authentication, adding user agent for better compatibility
 const TFL_OPTIONS = {
   headers: {
@@ -26,18 +29,20 @@ const TFL_OPTIONS = {
 // Helper function to make HTTPS requests to TfL API
 function makeApiRequest(path) {
   return new Promise((resolve, reject) => {
-    const url = `${TFL_API_BASE}${path}`;
+    const url = new URL(`${TFL_API_BASE}${path}`);
+    if (TFL_APP_ID) url.searchParams.set('app_id', TFL_APP_ID);
+    if (TFL_APP_KEY) url.searchParams.set('app_key', TFL_APP_KEY);
+
     https.get(url, TFL_OPTIONS, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
-          // Handle both JSON and text responses
           if (res.statusCode === 200) {
             const parsed = JSON.parse(data);
             resolve(parsed);
           } else {
-            console.log(`TfL API returned status ${res.statusCode}`);
+            console.log(`TfL API returned status ${res.statusCode} for ${url.pathname}${url.search}`);
             reject(new Error(`API returned status ${res.statusCode}`));
           }
         } catch (e) {
@@ -59,6 +64,29 @@ let lastLinesUpdate = 0;
 let lastStationsUpdate = 0;
 const CACHE_DURATION = 300000; // 5 minutes
 
+const stopPointSearchCache = new Map();
+const STOP_SEARCH_CACHE_DURATION = 60000; // 1 minute
+const lineRouteCache = new Map();
+const ROUTE_CACHE_DURATION = 600000; // 10 minutes
+
+async function loadTubeLines() {
+  const now = Date.now();
+  if (!cachedLines || (now - lastLinesUpdate) > CACHE_DURATION) {
+    console.log('Fetching lines from TfL API...');
+    try {
+      cachedLines = await makeApiRequest('/Line/Mode/tube');
+      lastLinesUpdate = now;
+      console.log(`Successfully fetched ${cachedLines.length} lines from TfL`);
+    } catch (apiError) {
+      console.log('TfL API unavailable, using local data');
+      const stations = require('./public/stations.json');
+      cachedLines = Object.keys(stations).map(line => ({ name: line, id: line.toLowerCase() }));
+      lastLinesUpdate = now;
+    }
+  }
+  return cachedLines;
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -76,23 +104,8 @@ app.get('/api/stations', async (req, res) => {
 
 app.get('/api/lines', async (req, res) => {
   try {
-    // Get tube lines from TfL API
-    const now = Date.now();
-    if (!cachedLines || (now - lastLinesUpdate) > CACHE_DURATION) {
-      console.log('Fetching lines from TfL API...');
-      try {
-        const lines = await makeApiRequest('/Line/Mode/tube');
-        cachedLines = lines;
-        lastLinesUpdate = now;
-        console.log(`Successfully fetched ${lines.length} lines from TfL`);
-      } catch (apiError) {
-        console.log('TfL API unavailable, using local data');
-        // Fallback to local data
-        const stations = require('./public/stations.json');
-        cachedLines = Object.keys(stations).map(line => ({ name: line, id: line.toLowerCase() }));
-      }
-    }
-    res.json(cachedLines);
+    const lines = await loadTubeLines();
+    res.json(lines);
   } catch (error) {
     console.error('Error in /api/lines:', error);
     res.status(500).json({ error: 'Failed to load lines' });
@@ -110,17 +123,67 @@ app.get('/api/line/:lineId/status', async (req, res) => {
   }
 });
 
+app.get('/api/line/:lineId/route', async (req, res) => {
+  try {
+    const { lineId } = req.params;
+    const direction = req.query.direction || 'all';
+    const cacheKey = `${lineId}:${direction}`;
+    const cached = lineRouteCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < ROUTE_CACHE_DURATION) {
+      return res.json({ routeSegments: cached.data });
+    }
+
+    const routeSequence = await makeApiRequest(`/Line/${encodeURIComponent(lineId)}/Route/Sequence/${direction}`);
+    if (!routeSequence || !Array.isArray(routeSequence.lineStrings)) {
+      throw new Error('Invalid route sequence response');
+    }
+
+    const routeSegments = routeSequence.lineStrings.flatMap((routeString) => {
+      try {
+        const parsed = JSON.parse(routeString);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .filter(segment => Array.isArray(segment))
+          .map(segment => segment
+            .filter(point => Array.isArray(point) && point.length >= 2)
+            .map(point => ({ lat: point[1], lon: point[0] }))
+          )
+          .filter(segment => segment.length >= 2);
+      } catch (e) {
+        return [];
+      }
+    }).filter(segment => segment.length >= 2);
+
+    lineRouteCache.set(cacheKey, { timestamp: Date.now(), data: routeSegments });
+    res.json({ routeSegments });
+  } catch (error) {
+    console.error('Error fetching line route:', error.message);
+    res.status(500).json({ error: 'Failed to fetch line route', message: error.message });
+  }
+});
+
 app.get('/api/stoppoint/search', async (req, res) => {
   try {
     const { query } = req.query;
     if (!query) {
       return res.status(400).json({ error: 'Query parameter required' });
     }
+
+    const normalizedQuery = query.trim().toLowerCase();
+    const cached = stopPointSearchCache.get(normalizedQuery);
+    if (cached && (Date.now() - cached.timestamp) < STOP_SEARCH_CACHE_DURATION) {
+      return res.json(cached.data);
+    }
+
     const queryString = `/StopPoint/Search?query=${encodeURIComponent(query)}&modes=tube`;
     const results = await makeApiRequest(queryString);
-    res.json(results);
+    const data = results.matches ? results : { matches: results };
+    stopPointSearchCache.set(normalizedQuery, { timestamp: Date.now(), data });
+    res.json(data);
   } catch (error) {
     console.error('Error searching stops:', error.message);
+    const fallback = stopPointSearchCache.get(req.query.query?.trim().toLowerCase());
+    if (fallback) return res.json(fallback.data);
     res.json({ matches: [] });
   }
 });
@@ -169,7 +232,13 @@ function mapArrivalToTrain(arrival) {
 }
 
 async function fetchLiveTfLTrains() {
-  const arrivals = await makeApiRequest('/Line/Mode/tube/Arrivals');
+  const lines = await loadTubeLines();
+  const lineIds = lines.map(line => (line.id || line.name || '').toLowerCase()).filter(Boolean).join(',');
+  if (!lineIds) {
+    throw new Error('No line IDs available for live TfL arrivals');
+  }
+
+  const arrivals = await makeApiRequest(`/Line/${encodeURIComponent(lineIds)}/Arrivals`);
   if (!Array.isArray(arrivals)) {
     throw new Error('Unexpected TfL arrivals format');
   }

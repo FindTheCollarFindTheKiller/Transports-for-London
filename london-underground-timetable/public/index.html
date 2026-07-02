@@ -28,6 +28,7 @@
             text-align: center;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
         }
         h1 {
@@ -615,6 +616,20 @@
             grid-template-columns: 100px 1fr;
             gap: 0.5rem;
         }
+        .expand-toggle {
+            background: transparent;
+            border: 1px solid #cbd5e1;
+            color: #0f172a;
+            padding: 0.55rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .expand-toggle:hover {
+            background-color: rgba(148, 163, 184, 0.12);
+            border-color: #94a3b8;
+        }
         .train-info-label {
             font-weight: 700;
             color: #666;
@@ -711,6 +726,7 @@
             color: white;
             letter-spacing: 0.03em;
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -776,6 +792,103 @@
         .tracking-map-container {
             margin-bottom: 1.5rem;
         }
+        .tracking-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.9rem;
+            padding: 0.9rem 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+        .tracking-toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .tracking-toolbar label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            font-weight: 700;
+        }
+        .tracking-toolbar select,
+        .tracking-toolbar button {
+            padding: 0.55rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            color: #0f172a;
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .tracking-toolbar button:hover,
+        .tracking-toolbar select:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .tracking-toolbar button {
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .tracking-map-meta {
+            font-size: 0.84rem;
+            color: #334155;
+            font-weight: 600;
+        }
+        .tracking-zoom-legend {
+            font-size: 0.78rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .line-details-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.8rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .line-details-header {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #111;
+        }
+        .line-overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        .line-overview-item {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+        .line-overview-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.35rem;
+        }
+        .line-info-details {
+            margin-top: 1rem;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .hidden {
+            display: none !important;
+        }
         .pulse {
             display: inline-block;
             width: 8px;
@@ -838,6 +951,14 @@
         <div id="lines-tab" class="tab-content active">
             <div class="lines-grid" id="linesContainer"></div>
 
+            <div id="lineDetailsCard" class="line-details-card hidden">
+                <div id="lineDetailsHeader" class="line-details-header">Select a line for details</div>
+                <div id="lineDetailsBody" class="line-info-details">
+                    Click a line above to view route information and live status.
+                </div>
+            </div>
+            <div id="lineMap" class="station-map hidden"></div>
+
             <div class="main-content" id="mainContent">
                 <div class="stations-container scrollbar">
                     <h3 id="stationTitle">Select a Line</h3>
@@ -874,6 +995,22 @@
             <div class="live-tracking-container">
                 <div class="tracking-status" id="trackingStatus">
                     <span class="pulse"></span>Connecting to live tracking...
+                </div>
+                <div class="tracking-toolbar">
+                    <div class="tracking-toolbar-group">
+                        <label for="trackingLineFilter">Line Filter</label>
+                        <select id="trackingLineFilter" aria-label="Live tracking line filter">
+                            <option value="all">All lines</option>
+                        </select>
+                        <button id="trackingResetViewBtn" type="button">Reset map view</button>
+                    </div>
+                    <div class="tracking-toolbar-group">
+                        <button id="trackingFitTrainsBtn" type="button">Fit to trains</button>
+                        <div>
+                            <div class="tracking-map-meta" id="trackingMapMeta">Showing all active trains</div>
+                            <div class="tracking-zoom-legend" id="trackingZoomLegend">Zoom detail: City overview</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="tracking-map-container">
                     <div id="trackingMap" class="tracking-map"></div>
@@ -918,6 +1055,8 @@
         let stationsData = {};
         let activeLineIndex = -1;
         let activeLine = null;
+        let lineMap = null;
+        let lineMapLineLayer = null;
         const tflLineIds = {
             'Waterloo': 'waterloo-city',
             'Hammersmith': 'hammersmith-city',
@@ -935,11 +1074,22 @@
         let stationMap = null;
         let stationMarker = null;
         let stationRouteLayers = [];
+        let stationBackgroundRouteLayers = [];
+        let lineMapBackgroundRouteLayers = [];
+        let lineMapStationLayer = null;
         let trackingMap = null;
         let trackingMarkers = [];
         let trackingRouteLayers = [];
+        let backgroundRouteLayers = [];
+        let trackingMarkerBounds = null;
+        let trackingLineFilter = 'all';
+        let trackingZoomLevel = 10;
+        let trackingRenderTimer = null;
+        let trackingRenderVersion = 0;
         const stationCoordinateCache = {};
         const lineStationCoordsCache = {};
+        const lineRouteCache = {};
+        const stationSearchCache = new Map();
 
         function updateTime() {
             const now = new Date();
@@ -1002,6 +1152,8 @@
                 
                 renderLines();
                 setupStationSearch();
+                setupTrackingControls();
+                populateTrackingLineFilter();
             } catch (error) {
                 console.error('Error loading data:', error);
             }
@@ -1022,11 +1174,19 @@
 
         // Search station using TfL API
         async function searchStationWithTfL(query) {
+          const normalizedQuery = query.trim().toLowerCase();
+          if (!normalizedQuery) return null;
+          if (stationSearchCache.has(normalizedQuery)) {
+            return stationSearchCache.get(normalizedQuery);
+          }
+
           try {
             const res = await fetch(`/api/stoppoint/search?query=${encodeURIComponent(query)}`);
             if (res.ok) {
               const results = await res.json();
-              return results.matches || results;
+              const matches = results.matches || results;
+              stationSearchCache.set(normalizedQuery, matches);
+              return matches;
             }
           } catch (error) {
             console.error('Error searching with TfL:', error);
@@ -1034,11 +1194,44 @@
           return null;
         }
 
+        function debounce(fn, delay = 250) {
+          let timer = null;
+          let pending = null;
+          let lastArgs = null;
+
+          return (...args) => {
+            lastArgs = args;
+            if (timer) clearTimeout(timer);
+            if (!pending) {
+              pending = {};
+              pending.promise = new Promise((resolve, reject) => {
+                pending.resolve = resolve;
+                pending.reject = reject;
+              });
+            }
+
+            timer = setTimeout(async () => {
+              timer = null;
+              try {
+                const result = await fn(...lastArgs);
+                pending.resolve(result);
+              } catch (error) {
+                pending.reject(error);
+              }
+              pending = null;
+            }, delay);
+
+            return pending.promise;
+          };
+        }
+
+        const debouncedSearchStationWithTfL = debounce(searchStationWithTfL, 350);
+
         async function getStopPointCoords(stationName) {
           if (stationCoordinateCache[stationName]) {
             return stationCoordinateCache[stationName];
           }
-          const matches = await searchStationWithTfL(stationName);
+                    const matches = await searchStationWithTfL(stationName);
           if (!matches || !matches.length) return null;
           const exactMatch = matches.find(item => item.name && item.name.toLowerCase() === stationName.toLowerCase());
           const tubeMatch = matches.find(item => item.modes && item.modes.includes('tube'));
@@ -1051,42 +1244,247 @@
         }
 
         async function getLineRouteCoords(lineName) {
+          if (lineRouteCache[lineName]) {
+            return lineRouteCache[lineName];
+          }
+
+          const tflLineId = tflLineIds[lineName] || lineName.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-');
+          try {
+            const res = await fetch(`/api/line/${encodeURIComponent(tflLineId)}/route`);
+            if (res.ok) {
+              const payload = await res.json();
+              if (Array.isArray(payload.routeSegments) && payload.routeSegments.length) {
+                lineRouteCache[lineName] = payload.routeSegments;
+                return payload.routeSegments;
+              }
+              if (Array.isArray(payload.route) && payload.route.length) {
+                const fallbackSegment = payload.route;
+                lineRouteCache[lineName] = [fallbackSegment];
+                return [fallbackSegment];
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching route for ${lineName}:`, error);
+          }
+
           if (lineStationCoordsCache[lineName]) {
-            return lineStationCoordsCache[lineName];
+            return [lineStationCoordsCache[lineName]];
           }
           const stationNames = timetables[lineName]?.stations || [];
           const results = await Promise.allSettled(stationNames.map(name => getStopPointCoords(name)));
           const coords = results
-            .map((result, index) => result.status === 'fulfilled' ? result.value : null)
+            .map(result => result.status === 'fulfilled' ? result.value : null)
             .filter(Boolean);
           lineStationCoordsCache[lineName] = coords;
-          return coords;
+          return [coords];
         }
 
-        async function drawLineRouteOnMap(lineName, map, color) {
+        async function drawLineRouteOnMap(lineName, map, color, options = {}) {
           if (!map || !timetables[lineName]) return null;
-          const coords = await getLineRouteCoords(lineName);
-          if (!coords || coords.length < 2) return null;
-          const dashArray = ['Circle', 'District', 'Hammersmith', 'Metropolitan'].includes(lineName) ? '12, 10' : '8, 8';
-          const polyline = L.polyline(coords.map(coord => [coord.lat, coord.lon]), {
-            color,
-            weight: 7,
-            opacity: 0.95,
-            dashArray,
-            lineCap: 'round',
-            lineJoin: 'round'
-          }).addTo(map);
+          const segments = await getLineRouteCoords(lineName);
+          if (!segments || !segments.length) return null;
+          const dashArray = options.dashArray || (['Circle', 'District', 'Hammersmith', 'Metropolitan'].includes(lineName) ? '12, 10' : '8, 8');
+          const group = L.layerGroup();
+          const lineIndex = Object.keys(timetables).indexOf(lineName);
 
-          // Soft glow underline for stronger tube route presentation
-          L.polyline(coords.map(coord => [coord.lat, coord.lon]), {
-            color: color,
-            weight: 14,
-            opacity: 0.15,
-            lineCap: 'round',
-            lineJoin: 'round'
-          }).addTo(map);
+          segments.forEach(coords => {
+            if (!coords || coords.length < 2) return;
+            const latlngs = coords.map(coord => [coord.lat, coord.lon]);
+            const route = L.polyline(latlngs, {
+              color,
+              weight: options.weight || 7,
+              opacity: options.opacity != null ? options.opacity : 0.95,
+              dashArray,
+              lineCap: 'round',
+              lineJoin: 'round',
+              interactive: options.interactive !== false,
+              bubblingMouseEvents: true
+            }).addTo(group);
 
-          return polyline;
+            if (options.interactive !== false) {
+              route.on('mouseover', () => {
+                route.setStyle({ weight: (options.hoverWeight || 9), opacity: 1 });
+                map.getContainer().style.cursor = 'pointer';
+              });
+              route.on('mouseout', () => {
+                route.setStyle({ weight: options.weight || 7, opacity: options.opacity != null ? options.opacity : 0.95 });
+                map.getContainer().style.cursor = '';
+              });
+              route.on('click', () => {
+                if (lineIndex >= 0) {
+                  selectLine(lineName, lineIndex);
+                }
+              });
+            }
+
+            L.polyline(latlngs, {
+              color,
+              weight: options.backgroundWeight || 14,
+              opacity: options.backgroundOpacity != null ? options.backgroundOpacity : 0.15,
+              lineCap: 'round',
+              lineJoin: 'round',
+              interactive: false
+            }).addTo(group);
+          });
+
+          group.addTo(map);
+          return group;
+        }
+
+        async function drawAllColoredLineRoutesOnMap(map, style = {}) {
+          if (!map) return [];
+          const layers = [];
+          const allLines = Object.keys(timetables);
+
+          for (const line of allLines) {
+            const routeColor = colorHexMap[lineColors[line] || 'central'] || '#777';
+            const segments = await getLineRouteCoords(line);
+            if (!segments || !segments.length) continue;
+
+            const group = L.layerGroup();
+            segments.forEach(coords => {
+              if (!coords || coords.length < 2) return;
+              const latlngs = coords.map(coord => [coord.lat, coord.lon]);
+              L.polyline(latlngs, {
+                color: style.color || routeColor,
+                weight: style.weight || 5,
+                opacity: style.opacity != null ? style.opacity : 0.45,
+                dashArray: style.dashArray || '4, 8',
+                lineCap: 'round',
+                lineJoin: 'round'
+              }).addTo(group);
+            });
+
+            group.addTo(map);
+            layers.push(group);
+          }
+
+          return layers;
+        }
+
+        async function drawAllLineStationsOnMap(map) {
+          if (!map) return null;
+          if (lineMapStationLayer) {
+            clearLayerGroup([lineMapStationLayer]);
+            lineMapStationLayer = null;
+          }
+
+          const coordsSet = new Set();
+          const markerGroup = L.layerGroup();
+          const allLines = Object.keys(timetables);
+
+          for (const line of allLines) {
+            const segments = await getLineRouteCoords(line);
+            if (!segments || !segments.length) continue;
+            segments.forEach(coords => {
+              if (!coords || coords.length < 2) return;
+              coords.forEach(coord => {
+                const key = `${coord.lat.toFixed(5)}|${coord.lon.toFixed(5)}`;
+                if (coordsSet.has(key)) return;
+                coordsSet.add(key);
+                L.circleMarker([coord.lat, coord.lon], {
+                  radius: 4,
+                  fillColor: '#2f3b4f',
+                  color: '#ffffff',
+                  weight: 1,
+                  fillOpacity: 0.85,
+                  interactive: false
+                }).addTo(markerGroup);
+              });
+            });
+          }
+
+          markerGroup.addTo(map);
+          lineMapStationLayer = markerGroup;
+          return markerGroup;
+        }
+
+        async function ensureStationMapRoutes() {
+          if (!stationMap || stationBackgroundRouteLayers.length) return;
+          stationBackgroundRouteLayers = await drawAllColoredLineRoutesOnMap(stationMap);
+        }
+
+        function initializeLineMap() {
+          const lineMapElement = document.getElementById('lineMap');
+          if (!lineMapElement || lineMap) return;
+
+          lineMap = L.map('lineMap', { center: [51.5074, -0.1278], zoom: 11, attributionControl: false });
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(lineMap);
+        }
+
+        function renderLineInfo(line) {
+          const lineInfoCard = document.getElementById('lineDetailsCard');
+          const lineInfoHeader = document.getElementById('lineDetailsHeader');
+          const lineInfoBody = document.getElementById('lineDetailsBody');
+          const lineMapEl = document.getElementById('lineMap');
+          const data = timetables[line] || {};
+          const stations = data.stations || [];
+          const firstStation = stations[0] || 'Unknown';
+          const lastStation = stations[stations.length - 1] || 'Unknown';
+          const stationCount = stations.length;
+          const routeColor = colorHexMap[lineColors[line] || 'central'] || '#777';
+
+          lineInfoHeader.textContent = `${line} Line Overview`;
+          lineInfoBody.innerHTML = `
+            <div class="line-overview-grid">
+              <div class="line-overview-item">
+                <span class="line-overview-label">Stations</span>
+                <strong>${stationCount}</strong>
+              </div>
+              <div class="line-overview-item">
+                <span class="line-overview-label">Start</span>
+                <strong>${firstStation}</strong>
+              </div>
+              <div class="line-overview-item">
+                <span class="line-overview-label">End</span>
+                <strong>${lastStation}</strong>
+              </div>
+              <div class="line-overview-item">
+                <span class="line-overview-label">Color</span>
+                <strong style="color: ${routeColor};">${line}</strong>
+              </div>
+            </div>
+            <div class="line-info-details">
+              Click the map to inspect the full route. Live status and timetable details will update below.
+            </div>
+          `;
+
+          lineInfoCard.classList.remove('hidden');
+          lineMapEl.classList.remove('hidden');
+        }
+
+        async function highlightSelectedLine(line) {
+          initializeLineMap();
+          if (!lineMap) return;
+
+          if (!lineMapBackgroundRouteLayers.length) {
+            lineMapBackgroundRouteLayers = await drawAllColoredLineRoutesOnMap(lineMap, {
+              opacity: 0.28,
+              weight: 4,
+              dashArray: '6, 12'
+            });
+            await drawAllLineStationsOnMap(lineMap);
+          }
+
+          if (lineMapLineLayer) {
+            clearLayerGroup([lineMapLineLayer]);
+            lineMapLineLayer = null;
+          }
+
+          lineMap.invalidateSize();
+          const color = colorHexMap[lineColors[line] || 'central'] || '#0019A8';
+          lineMapLineLayer = await drawLineRouteOnMap(line, lineMap, color);
+          if (lineMapLineLayer && lineMapLineLayer.getBounds && lineMapLineLayer.getBounds().isValid()) {
+            const bounds = lineMapLineLayer.getBounds();
+            lineMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+          }
+
+          setTimeout(() => {
+            lineMap.invalidateSize();
+          }, 100);
         }
 
         function clearLayerGroup(layers) {
@@ -1115,6 +1513,15 @@
               maxZoom: 19,
               attribution: '&copy; OpenStreetMap contributors'
             }).addTo(trackingMap);
+
+                        trackingZoomLevel = trackingMap.getZoom();
+                        trackingMap.on('moveend', () => {
+                            scheduleTrackingRender(60);
+                        });
+                        trackingMap.on('zoomend', () => {
+                            trackingZoomLevel = trackingMap.getZoom();
+                            scheduleTrackingRender(60);
+            });
           }
         }
 
@@ -1127,9 +1534,14 @@
           }
           stationMarker = L.marker([lat, lon]).addTo(stationMap).bindPopup(`<strong>${label}</strong>`).openPopup();
 
-          for (const line of lines.slice(0, 3)) {
+          for (const line of lines) {
             const color = colorHexMap[lineColors[line] || 'central'];
-            const route = await drawLineRouteOnMap(line, stationMap, color);
+            const route = await drawLineRouteOnMap(line, stationMap, color, {
+              weight: 5,
+              opacity: 0.6,
+              dashArray: '6, 10',
+              interactive: false
+            });
             if (route) {
               stationRouteLayers.push(route);
             }
@@ -1137,43 +1549,282 @@
           stationMap.invalidateSize();
         }
 
+                async function drawAllLineRoutesOnMap(map, style = {}) {
+          if (!map) return [];
+          const layers = [];
+          const allLines = Object.keys(timetables);
+
+                    const options = {
+                        weight: style.weight ?? 5,
+                        opacity: style.opacity ?? 0.22,
+                        dashArray: style.dashArray || '6, 10'
+                    };
+
+          for (const line of allLines) {
+            const routeColor = colorHexMap[lineColors[line] || 'central'] || '#777';
+            const segments = await getLineRouteCoords(line);
+            if (!segments || !segments.length) continue;
+            const group = L.layerGroup();
+            segments.forEach(coords => {
+              if (!coords || coords.length < 2) return;
+              const latlngs = coords.map(coord => [coord.lat, coord.lon]);
+              L.polyline(latlngs, {
+                color: routeColor,
+                                weight: options.weight,
+                                opacity: options.opacity,
+                                dashArray: options.dashArray,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }).addTo(group);
+            });
+            group.addTo(map);
+            layers.push(group);
+          }
+          return layers;
+        }
+
+        async function getVisibleTrains() {
+                    const filteredByLine = currentTrains.filter(train => {
+                        if (!train || !train.line) return false;
+                        return trackingLineFilter === 'all' || train.line === trackingLineFilter;
+                    });
+
+          if (!trackingMap || !trackingMap.getBounds) {
+                        return filteredByLine;
+          }
+
+          const bounds = trackingMap.getBounds();
+                    const visible = await Promise.all(filteredByLine.map(async train => {
+            if (!train.nextStation) return null;
+            const coords = await getStopPointCoords(train.nextStation);
+            if (!coords) return null;
+            return bounds.contains(L.latLng(coords.lat, coords.lon)) ? train : null;
+          }));
+
+                    return visible.filter(Boolean);
+        }
+
+                function getTrackingTrainsByLine() {
+                    return currentTrains.filter(train => {
+                        if (!train || !train.line) return false;
+                        return trackingLineFilter === 'all' || train.line === trackingLineFilter;
+                    });
+                }
+
+                function getTrackingZoomProfile() {
+                    const zoom = trackingMap && trackingMap.getZoom ? trackingMap.getZoom() : trackingZoomLevel;
+                    if (zoom >= 13) {
+                        return {
+                            markerRadius: 9,
+                            markerStroke: 3,
+                            routeWeight: 6,
+                            routeOpacity: 0.55,
+                            backgroundWeight: 14,
+                            backgroundOpacity: 0.12,
+                            maxVisibleCardsPerLine: 8,
+                            maxRenderedMarkers: 32,
+                            overlapStep: 0.00028
+                        };
+                    }
+                    if (zoom >= 11) {
+                        return {
+                            markerRadius: 7,
+                            markerStroke: 2,
+                            routeWeight: 5,
+                            routeOpacity: 0.45,
+                            backgroundWeight: 13,
+                            backgroundOpacity: 0.1,
+                            maxVisibleCardsPerLine: 6,
+                            maxRenderedMarkers: 24,
+                            overlapStep: 0.00034
+                        };
+                    }
+                    return {
+                        markerRadius: 5,
+                        markerStroke: 2,
+                        routeWeight: 4,
+                        routeOpacity: 0.36,
+                        backgroundWeight: 12,
+                        backgroundOpacity: 0.08,
+                        maxVisibleCardsPerLine: 4,
+                        maxRenderedMarkers: 16,
+                        overlapStep: 0.00042
+                    };
+                }
+
+                function updateTrackingMeta(total, visible) {
+                    const meta = document.getElementById('trackingMapMeta');
+                    if (!meta) return;
+                    if (!total) {
+                        meta.textContent = 'No active trains for the current filter';
+                        return;
+                    }
+                    const filterLabel = trackingLineFilter === 'all' ? 'all lines' : `${trackingLineFilter} line`;
+                    meta.textContent = `Showing ${visible} of ${total} train${total !== 1 ? 's' : ''} in view (${filterLabel})`;
+                }
+
+                function updateTrackingZoomLegend(profile) {
+                    const legend = document.getElementById('trackingZoomLegend');
+                    if (!legend) return;
+                    let zoomBand = 'City overview';
+                    if (trackingZoomLevel >= 13) {
+                        zoomBand = 'Station detail';
+                    } else if (trackingZoomLevel >= 11) {
+                        zoomBand = 'Corridor detail';
+                    }
+                    legend.textContent = `Zoom detail: ${zoomBand} · cards ${profile.maxVisibleCardsPerLine} · markers ${profile.maxRenderedMarkers}`;
+                }
+
+                function scheduleTrackingRender(delay = 80) {
+                    if (trackingRenderTimer) {
+                        clearTimeout(trackingRenderTimer);
+                    }
+                    trackingRenderTimer = setTimeout(() => {
+                        trackingRenderTimer = null;
+                        renderLiveTrains().catch(console.error);
+                    }, delay);
+                }
+
+                function populateTrackingLineFilter() {
+                    const select = document.getElementById('trackingLineFilter');
+                    if (!select) return;
+
+                    const currentValue = select.value;
+                    const lines = Object.keys(timetables).sort();
+                    select.innerHTML = '<option value="all">All lines</option>';
+
+                    lines.forEach(line => {
+                        const option = document.createElement('option');
+                        option.value = line;
+                        option.textContent = line;
+                        select.appendChild(option);
+                    });
+
+                    if (currentValue && (currentValue === 'all' || lines.includes(currentValue))) {
+                        select.value = currentValue;
+                        trackingLineFilter = currentValue;
+                    }
+                }
+
+                function resetTrackingMapView() {
+                    if (!trackingMap) return;
+                    trackingMap.setView([51.5074, -0.1278], 10);
+                }
+
+                function fitTrackingMapToMarkers() {
+                    if (!trackingMap || !trackingMarkerBounds || !trackingMarkerBounds.isValid()) return;
+                    trackingMap.fitBounds(trackingMarkerBounds, { padding: [28, 28], maxZoom: 13 });
+                }
+
+                function setupTrackingControls() {
+                    const lineFilter = document.getElementById('trackingLineFilter');
+                    const resetBtn = document.getElementById('trackingResetViewBtn');
+                    const fitBtn = document.getElementById('trackingFitTrainsBtn');
+                    if (!lineFilter || !resetBtn || !fitBtn) return;
+                    if (lineFilter.dataset.bound === 'true') return;
+
+                    lineFilter.addEventListener('change', () => {
+                        trackingLineFilter = lineFilter.value;
+                        scheduleTrackingRender(20);
+                    });
+
+                    resetBtn.addEventListener('click', () => {
+                        resetTrackingMapView();
+                    });
+
+                    fitBtn.addEventListener('click', () => {
+                        fitTrackingMapToMarkers();
+                    });
+
+                    lineFilter.dataset.bound = 'true';
+                }
+
         async function updateTrackingMap() {
           if (!trackingMap) return;
+                    const renderVersion = ++trackingRenderVersion;
+                    const zoomProfile = getTrackingZoomProfile();
+
+          if (!backgroundRouteLayers.length) {
+            backgroundRouteLayers = await drawAllLineRoutesOnMap(trackingMap, {
+              opacity: 0.18,
+              weight: 4,
+              dashArray: '8, 12'
+            });
+          }
+
           trackingMarkers.forEach(marker => trackingMap.removeLayer(marker));
           trackingMarkers = [];
+                    trackingMarkerBounds = null;
           clearLayerGroup(trackingRouteLayers);
 
-          const uniqueLines = [...new Set(currentTrains.map(train => train.line).filter(Boolean))].slice(0, 5);
+          const visibleTrains = await getVisibleTrains();
+          const uniqueLines = [...new Set(visibleTrains.map(train => train.line).filter(Boolean))];
+                    const stationNames = [...new Set(visibleTrains.map(train => train.nextStation).filter(Boolean))];
+                    const stationCoordsEntries = await Promise.all(stationNames.map(async stationName => [stationName, await getStopPointCoords(stationName)]));
+                    const stationCoordsMap = new Map(stationCoordsEntries.filter(([, coords]) => !!coords));
+                    const overlapMap = new Map();
+
           for (const line of uniqueLines) {
             const color = colorHexMap[lineColors[line] || 'central'];
-            const route = await drawLineRouteOnMap(line, trackingMap, color);
+            const route = await drawLineRouteOnMap(line, trackingMap, color, {
+                            weight: zoomProfile.routeWeight,
+                            opacity: zoomProfile.routeOpacity,
+              dashArray: '6, 10',
+              interactive: false,
+                            backgroundWeight: zoomProfile.backgroundWeight,
+                            backgroundOpacity: zoomProfile.backgroundOpacity
+            });
             if (route) {
               trackingRouteLayers.push(route);
             }
           }
 
-          const uniqueStations = [...new Set(currentTrains.map(train => train.nextStation).filter(Boolean))].slice(0, 15);
-          const bounds = [];
+          const sortedTrains = [...visibleTrains]
+            .filter(train => train.nextStation)
+            .sort((a, b) => (Number(a.timeToStation) || 0) - (Number(b.timeToStation) || 0));
 
-          for (const stationName of uniqueStations) {
-            const coords = await getStopPointCoords(stationName);
-            if (coords) {
-              const marker = L.circleMarker([coords.lat, coords.lon], {
-                radius: 7,
-                fillColor: '#ff5722',
-                color: '#ffffff',
-                weight: 2,
-                fillOpacity: 0.9
-              }).addTo(trackingMap);
-              marker.bindPopup(`<strong>${stationName}</strong><br/>Next arrival at ${stationName}`);
-              trackingMarkers.push(marker);
-              bounds.push([coords.lat, coords.lon]);
-            }
+                    for (const train of sortedTrains.slice(0, zoomProfile.maxRenderedMarkers)) {
+                        const coords = stationCoordsMap.get(train.nextStation);
+            if (!coords) continue;
+
+                        const overlapKey = `${coords.lat.toFixed(5)}|${coords.lon.toFixed(5)}`;
+                        const overlapIndex = overlapMap.get(overlapKey) || 0;
+                        overlapMap.set(overlapKey, overlapIndex + 1);
+                        const offsetAngle = overlapIndex * 0.9;
+                        const offsetDistance = Math.min(0.0024, overlapIndex * zoomProfile.overlapStep);
+                        const markerLat = coords.lat + (Math.sin(offsetAngle) * offsetDistance);
+                        const markerLon = coords.lon + (Math.cos(offsetAngle) * offsetDistance);
+
+            const colorClass = lineColors[train.line] || 'central';
+            const color = colorHexMap[colorClass];
+                        const marker = L.circleMarker([markerLat, markerLon], {
+                            radius: zoomProfile.markerRadius,
+              fillColor: color,
+              color: '#ffffff',
+                            weight: zoomProfile.markerStroke,
+              fillOpacity: 0.95
+            }).addTo(trackingMap);
+
+                        if (!trackingMarkerBounds) {
+                            trackingMarkerBounds = L.latLngBounds([markerLat, markerLon], [markerLat, markerLon]);
+                        } else {
+                            trackingMarkerBounds.extend([markerLat, markerLon]);
+                        }
+
+            const arrivalText = train.timeToStation != null ? `${Math.ceil(train.timeToStation / 60)} min` : 'TBC';
+            marker.bindTooltip(`<strong>${train.line}</strong><br>${train.destination}<br>${train.nextStation}<br>${arrivalText}`, {
+              direction: 'top',
+              offset: [0, -8],
+              className: 'train-tooltip'
+            });
+            trackingMarkers.push(marker);
           }
 
-          if (bounds.length) {
-            trackingMap.fitBounds(bounds, { padding: [40, 40] });
-          }
+                    if (renderVersion !== trackingRenderVersion) {
+                        return;
+                    }
+
+          // Do not auto-zoom in live tracking; preserve the current user map view.
           trackingMap.invalidateSize();
         }
 
@@ -1199,10 +1850,17 @@
             renderStations(data.stations, line);
             renderSchedules(data.schedules, line);
             await renderLineStatus(line);
+            renderLineInfo(line);
+            await highlightSelectedLine(line);
             
             document.querySelectorAll('.line-btn').forEach((btn, idx) => {
                 btn.classList.toggle('active', idx === index);
             });
+
+            const scheduleTitle = document.getElementById('scheduleTitle');
+            if (scheduleTitle) {
+                scheduleTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         function renderStations(stations, lineName) {
@@ -1263,6 +1921,18 @@
                 filteredSchedules = [...filteredSchedules].sort((a, b) => 
                     a.platform.localeCompare(b.platform)
                 );
+            } else {
+                filteredSchedules = [...filteredSchedules].sort((a, b) => {
+                    const [aHours, aMins] = a.departure.split(':').map(Number);
+                    const [bHours, bMins] = b.departure.split(':').map(Number);
+                    const aMinutes = aHours * 60 + aMins;
+                    const bMinutes = bHours * 60 + bMins;
+                    const now = new Date();
+                    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                    const aOffset = aMinutes < currentMinutes ? aMinutes + 24 * 60 : aMinutes;
+                    const bOffset = bMinutes < currentMinutes ? bMinutes + 24 * 60 : bMinutes;
+                    return aOffset - bOffset;
+                });
             }
             
             const now = new Date();
@@ -1439,7 +2109,7 @@
             const searchInput = document.getElementById('stationSearchInput');
             const suggestionsList = document.getElementById('suggestionsList');
 
-            searchInput.addEventListener('input', (e) => {
+            const handleInput = debounce((e) => {
                 const query = e.target.value.toLowerCase().trim();
                 if (query.length === 0) {
                     suggestionsList.classList.remove('active');
@@ -1464,6 +2134,8 @@
                     .join('');
                 suggestionsList.classList.add('active');
             });
+
+            searchInput.addEventListener('input', handleInput);
 
             document.addEventListener('click', (e) => {
                 if (e.target !== searchInput) {
@@ -1516,6 +2188,9 @@
                 hideStatusBanner();
             });
 
+            initializeMaps();
+            ensureStationMapRoutes().catch(console.error);
+
             let html = `
                 <div class="station-details">
                     <div class="station-header">
@@ -1564,8 +2239,15 @@
                 }
             });
 
-            // Sort by arrival time
+            // Sort selected line services first, then by arrival time
             services.sort((a, b) => {
+                if (activeLine) {
+                    const aSelected = a.line === activeLine;
+                    const bSelected = b.line === activeLine;
+                    if (aSelected !== bSelected) {
+                        return aSelected ? -1 : 1;
+                    }
+                }
                 const [aHours, aMins] = a.arrivalTime.split(':').map(Number);
                 const [bHours, bMins] = b.arrivalTime.split(':').map(Number);
                 return (aHours * 60 + aMins) - (bHours * 60 + bMins);
@@ -1616,7 +2298,7 @@
                 initializeMaps();
                 const coords = await getStopPointCoords(stationName);
                 if (coords) {
-                    updateStationMap(coords.lat, coords.lon, stationName);
+                    updateStationMap(coords.lat, coords.lon, stationName, servingLines);
                 }
             }, 50);
         }
@@ -1666,7 +2348,7 @@
                         trackingMap.invalidateSize();
                     }
                     if (currentTrains.length > 0) {
-                        renderLiveTrains();
+                        scheduleTrackingRender(20);
                     }
                 }, 100);
             }
@@ -1693,6 +2375,16 @@
         // Live Tracking with WebSocket
         let socket = null;
         let currentTrains = [];
+        const expandedLiveLines = new Set();
+
+        function toggleLiveLineExpansion(line) {
+            if (expandedLiveLines.has(line)) {
+                expandedLiveLines.delete(line);
+            } else {
+                expandedLiveLines.add(line);
+            }
+            scheduleTrackingRender(20);
+        }
 
         function initializeWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -1707,12 +2399,12 @@
             socket.on('initial-trains', (data) => {
                 console.log('Received initial trains:', data);
                 currentTrains = data.trains || [];
-                renderLiveTrains();
+                scheduleTrackingRender(10);
             });
 
             socket.on('train-update', (data) => {
                 currentTrains = data.trains || [];
-                renderLiveTrains();
+                scheduleTrackingRender(10);
             });
 
             socket.on('disconnect', () => {
@@ -1738,80 +2430,109 @@
             }
         }
 
-        function renderLiveTrains() {
+        async function renderLiveTrains() {
             const container = document.getElementById('trainsContainer');
+            const trainsByLine = getTrackingTrainsByLine();
+            const zoomProfile = getTrackingZoomProfile();
+            updateTrackingZoomLegend(zoomProfile);
             
-            if (!currentTrains || currentTrains.length === 0) {
+            if (!trainsByLine || trainsByLine.length === 0) {
+                updateTrackingMeta(0, 0);
                 container.innerHTML = '<div class="no-trains">No trains currently tracking</div>';
                 return;
             }
 
-            // Sort trains by line
-            const trainsByLine = {};
-            currentTrains.forEach(train => {
-                if (!trainsByLine[train.line]) {
-                    trainsByLine[train.line] = [];
+            const filteredTrains = await getVisibleTrains();
+            updateTrackingMeta(trainsByLine.length, filteredTrains.length);
+            const trains = [...filteredTrains]
+                .filter(train => train.line)
+                .sort((a, b) => {
+                    const aTime = Number(a.timeToStation) || Infinity;
+                    const bTime = Number(b.timeToStation) || Infinity;
+                    if (aTime !== bTime) return aTime - bTime;
+                    return (a.nextStation || '').localeCompare(b.nextStation || '');
+                });
+
+            if (trains.length === 0) {
+                container.innerHTML = '<div class="no-trains">No trains currently in this map view. Zoom out or reset the map.</div>';
+                setTimeout(() => {
+                    updateTrackingMap().catch(console.error);
+                }, 60);
+                return;
+            }
+
+            const lineGroups = {};
+            trains.forEach(train => {
+                if (!lineGroups[train.line]) {
+                    lineGroups[train.line] = [];
                 }
-                trainsByLine[train.line].push(train);
+                lineGroups[train.line].push(train);
             });
 
             let html = '';
+            Object.keys(lineGroups).sort().forEach(line => {
+                const colorClass = lineColors[line] || 'central';
+                const color = colorHexMap[colorClass];
+                const trainsForLine = lineGroups[line];
+                const nextArrival = trainsForLine.find(t => t.timeToStation != null);
+                const nextText = nextArrival ? `${Math.ceil(nextArrival.timeToStation / 60)} min` : 'TBC';
+                const isExpanded = expandedLiveLines.has(line);
+                const trainsToShow = isExpanded ? trainsForLine : trainsForLine.slice(0, zoomProfile.maxVisibleCardsPerLine);
+                const toggleLabel = isExpanded ? 'Show less' : `Show all ${trainsForLine.length}`;
 
-            Object.keys(trainsByLine).sort().forEach(line => {
-                trainsByLine[line].forEach(train => {
-                    const colorClass = lineColors[train.line] || 'central';
-                    const color = colorHexMap[colorClass];
+                html += `
+                    <div class="train-card" style="border-left-color: ${color}; padding: 1rem 1.1rem; background: rgba(255,255,255,0.95);">
+                        <div class="train-header" style="border-bottom-color: ${color}; margin-bottom: 0.75rem; gap: 0.75rem;">
+                            <div style="display: grid; gap: 0.4rem;">
+                                <div class="train-line-badge" style="background-color: ${color}; font-size: 0.95rem; padding: 0.55rem 1rem;">
+                                    ${line}
+                                </div>
+                                <div style="font-weight: 700; color: #334155; font-size: 0.95rem;">
+                                    ${trainsForLine.length} active train${trainsForLine.length !== 1 ? 's' : ''} · next in ${nextText}
+                                </div>
+                            </div>
+                            ${trainsForLine.length > zoomProfile.maxVisibleCardsPerLine ? `<button class="expand-toggle" onclick="toggleLiveLineExpansion('${line}')">${toggleLabel}</button>` : ''}
+                        </div>
+                `;
+
+                trainsToShow.forEach(train => {
                     const passengerColor = getPassengerColor(train.passengers);
                     const progressColor = getProgressColor(train.progress);
-                    
+                    const arrivalLabel = train.timeToStation != null ? `${Math.ceil(train.timeToStation / 60)} min` : 'TBC';
                     html += `
-                        <div class="train-card" style="border-left-color: ${color};">
-                            <div class="train-header" style="border-bottom-color: ${color};">
-                                <div class="train-line-badge" style="background-color: ${color};">
-                                    ${train.line}
-                                </div>
+                        <div class="train-card" style="border-left-color: ${color}; margin-bottom: 0.9rem; padding: 1rem; background: #f8fafc; box-shadow: none; border-radius: 12px;">
+                            <div class="train-header" style="border-bottom-color: ${color}; margin-bottom: 0.75rem;">
+                                <div style="font-weight: 700; color: #0f172a;">${train.destination}</div>
                                 <div class="train-status ${train.status === 'Running' ? 'status-running' : 'status-delayed-train'}">
                                     ${train.status}
                                 </div>
                             </div>
-                            <div class="train-info">
+                            <div class="train-info" style="grid-template-columns: 1fr 1fr; gap: 0.85rem;">
                                 <div class="train-info-item">
-                                    <span class="train-info-label">Train ID:</span>
-                                    <span class="train-info-value">${train.id}</span>
+                                    <span class="train-info-label">Train ID</span>
+                                    <span class="train-info-value">${train.id || 'N/A'}</span>
                                 </div>
                                 <div class="train-info-item">
-                                    <span class="train-info-label">Destination:</span>
-                                    <span class="train-info-value">${train.destination}</span>
+                                    <span class="train-info-label">Next Station</span>
+                                    <span class="train-info-value">${train.nextStation || 'Unknown'}</span>
                                 </div>
                                 <div class="train-info-item">
-                                    <span class="train-info-label">Next Station:</span>
-                                    <span class="train-info-value">${train.nextStation}</span>
+                                    <span class="train-info-label">Arriving in</span>
+                                    <span class="train-info-value">${arrivalLabel}</span>
                                 </div>
                                 <div class="train-info-item">
-                                    <span class="train-info-label">Position:</span>
-                                    <span class="train-info-value">${train.currentPosition} of ~${getLineStationCount(train.line)} stations</span>
-                                </div>
-                                <div class="train-info-item">
-                                    <span class="train-info-label">Arriving in:</span>
-                                    <span class="train-info-value">${train.timeToStation != null ? `${Math.ceil(train.timeToStation / 60)} min` : 'TBC'}</span>
+                                    <span class="train-info-label">Passengers</span>
+                                    <span class="train-info-value">${train.passengers || 'Unknown'}</span>
                                 </div>
                             </div>
-                            <div>
-                                <div class="train-info-label" style="margin-bottom: 0.5rem;">Distance to Next Station</div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" style="width: ${train.progress}%; background-color: ${progressColor};"></div>
-                                </div>
-                                <div style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                                    ${Math.round(train.progress)}% complete
-                                </div>
-                            </div>
-                            <div class="passenger-indicator">
-                                <span class="passenger-dot ${passengerColor}"></span>
-                                <span>${train.passengers}</span>
+                            <div class="progress-bar-container" style="margin-top: 0.9rem;">
+                                <div class="progress-bar" style="width: ${Math.min(Math.max(Number(train.progress) || 0, 0), 100)}%; background-color: ${progressColor};"></div>
                             </div>
                         </div>
                     `;
                 });
+
+                html += `</div>`;
             });
 
             container.innerHTML = html || '<div class="no-trains">No trains available</div>';
