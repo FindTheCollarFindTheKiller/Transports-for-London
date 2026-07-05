@@ -153,8 +153,8 @@
             border: 1px solid var(--surface-border);
             border-radius: 28px;
             box-shadow: var(--shadow-soft);
-            backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px);
         }
         .hero-card {
             padding: 1.7rem 1.8rem;
@@ -1377,6 +1377,13 @@
             display: grid;
             gap: 0.8rem;
             margin-bottom: 1.2rem;
+        .section-card-spaced {
+            margin-bottom: 2rem;
+        }
+        .section-heading {
+            margin-bottom: 0.75rem;
+            color: #1a1a1a;
+        }
             font-size: 0.95rem;
         }
         .train-info-item {
@@ -1724,11 +1731,6 @@
         }
 
         /* Mobile enhancement overrides */
-        html {
-            -webkit-text-size-adjust: 100%;
-            text-size-adjust: 100%;
-        }
-
         @media (max-width: 900px) {
             body {
                 padding-bottom: calc(86px + env(safe-area-inset-bottom));
@@ -1794,7 +1796,6 @@
                 line-height: 1.04;
                 margin-bottom: 0.3rem;
                 letter-spacing: 0.02em;
-                text-wrap: balance;
             }
 
             .time-display {
@@ -2198,9 +2199,8 @@
                 </div>
             </div>
         </div>
-
-        <div id="networkSummary" class="line-info" style="margin-bottom: 2rem;">
-            <h3 style="margin-bottom: .75rem; color: #1a1a1a;">Network service summary</h3>
+        <div id="networkSummary" class="line-info section-card-spaced">
+            <h3 class="section-heading">Network service summary</h3>
             <div class="status-summary-container" id="statusSummaryCards">
                 <div class="status-summary-card">
                     <div class="status-summary-label">Healthy lines</div>
@@ -2259,7 +2259,7 @@
         <div id="lines-tab" class="tab-content active">
             <div class="lines-grid" id="linesContainer"></div>
             <div id="lineInfo" class="line-info">
-                <h3 style="margin-bottom: .75rem; color: #1a1a1a;">Line details</h3>
+                <h3 class="section-heading">Line details</h3>
                 <div class="line-info-text">Click a line to see its name and zones covered.</div>
             </div>
 

@@ -1,11 +1,13 @@
 # TfL API Integration Guide
 
 ## Overview
+
 This application integrates with the Transport for London (TfL) API to provide real-time data about London Underground lines, stations, and train arrivals.
 
 ## TfL API Features Implemented
 
 ### 1. **Line Information Endpoint**
+
 - **Endpoint**: `/api/lines`
 - **Description**: Fetches all London Underground tube lines
 - **TfL API**: `GET /Line/Mode/tube`
@@ -13,6 +15,7 @@ This application integrates with the Transport for London (TfL) API to provide r
 - **Caching**: 10 minutes to reduce API calls
 
 ### 2. **Line Status Endpoint**
+
 - **Endpoint**: `/api/line/:lineId/status`
 - **Description**: Gets current status of a specific line
 - **TfL API**: `GET /Line/{lineId}/Status`
@@ -20,6 +23,7 @@ This application integrates with the Transport for London (TfL) API to provide r
 - **Use Case**: Display service alerts and disruptions
 
 ### 3. **Stop Point Search Endpoint**
+
 - **Endpoint**: `/api/stoppoint/search?query={stationName}`
 - **Description**: Search for stations by name
 - **TfL API**: `GET /StopPoint/Search`
@@ -27,6 +31,7 @@ This application integrates with the Transport for London (TfL) API to provide r
 - **Use Case**: Smart station search functionality
 
 ### 4. **Arrivals Prediction Endpoint**
+
 - **Endpoint**: `/api/stoppoint/:stopId/arrivals`
 - **Description**: Get next train arrivals at a specific station
 - **TfL API**: `GET /StopPoint/{stopId}/Arrivals`
@@ -36,15 +41,19 @@ This application integrates with the Transport for London (TfL) API to provide r
 ## API Configuration
 
 ### Authentication
+
 The TfL API allows public access without authentication for most endpoints. Rate limiting is in place (~1000 requests per minute).
 
 ### Base URL
-```
+
+```text
 https://api.tfl.gov.uk
 ```
 
 ### Error Handling
+
 All API endpoints include graceful error handling:
+
 - Falls back to local cached data on API failures
 - Logs errors for debugging
 - Returns appropriate error responses
@@ -53,6 +62,7 @@ All API endpoints include graceful error handling:
 ## Implementation Details
 
 ### Server-Side Integration (server.js)
+
 ```javascript
 // TfL API Configuration
 const TFL_API_BASE = 'https://api.tfl.gov.uk';
@@ -69,6 +79,7 @@ const CACHE_DURATION = 600000; // 10 minutes
 ```
 
 ### Client-Side Integration (index.html)
+
 ```javascript
 // Fetch real TfL data
 async function loadData() {
@@ -85,6 +96,7 @@ async function searchStationWithTfL(query)
 ## Data Flow
 
 ### Live Train Tracking
+
 1. Server maintains WebSocket connection with connected clients
 2. Every 30 seconds while at least one client is connected:
    - Load latest train data
@@ -97,6 +109,7 @@ async function searchStationWithTfL(query)
    - Status (Running/Delayed)
 
 ### Station Search
+
 1. User searches for a station
 2. Frontend attempts TfL API search first
 3. Falls back to local station database
@@ -108,6 +121,7 @@ async function searchStationWithTfL(query)
 ## Sample API Responses
 
 ### Line Information
+
 ```json
 [
   {
@@ -128,6 +142,7 @@ async function searchStationWithTfL(query)
 ```
 
 ### Arrivals Data
+
 ```json
 [
   {
@@ -146,6 +161,7 @@ async function searchStationWithTfL(query)
 ## Testing the Integration
 
 ### Test TfL Endpoints
+
 ```bash
 # Get lines
 curl https://api.tfl.gov.uk/Line/Mode/tube
@@ -161,6 +177,7 @@ curl https://api.tfl.gov.uk/StopPoint/1000049/Arrivals
 ```
 
 ### Local Server Endpoints
+
 ```bash
 # Fetch lines via our server
 curl http://localhost:3000/api/lines
@@ -200,15 +217,18 @@ curl http://localhost:3000/api/stoppoint/1000049/arrivals
 ## Troubleshooting
 
 ### API Connection Errors
+
 - Check internet connection
 - Verify TfL API is accessible
 - Check server logs for detailed error messages
 
 ### Missing Station Data
+
 - Ensure `stations-data.json` is present
 - Verify station IDs match TfL API format
 
 ### Real-time Updates Not Working
+
 - Check WebSocket connection (Socket.io)
 - Verify server is running
 - Check browser console for errors
@@ -220,4 +240,5 @@ curl http://localhost:3000/api/stoppoint/1000049/arrivals
 - [Express.js Documentation](https://expressjs.com/)
 
 ## License
+
 This integration follows TfL's terms of service. See TfL API documentation for usage requirements.

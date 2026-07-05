@@ -111,9 +111,9 @@ Suggested flow:
 
 ```bash
 az group create --name <resource-group> --location <region>
-az deployment group what-if --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json
-az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json
-az webapp deploy --resource-group <resource-group> --name <web-app-name> --src-path london-underground-timetable-1.0.0.zip --type zip
+az deployment group what-if --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json prefix=<app-name-prefix>
+az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json prefix=<app-name-prefix>
+az webapp deploy --resource-group <resource-group> --name <app-name-prefix>-web --src-path london-underground-timetable-1.0.0.zip --type zip
 ```
 
 For the full deployment rationale and resource plan, see [.azure/plan.copilotmd](.azure/plan.copilotmd).
