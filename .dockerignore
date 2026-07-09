@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log*
+london-underground-timetable/node_modules
+london-underground-timetable/__tests__
+london-underground-timetable/test-api.js
+london-underground-timetable/smoke-test.ps1
+london-underground-timetable/.azure
+london-underground-timetable/infra
+.git
+.github
+*.tgz
