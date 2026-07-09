@@ -5,13 +5,31 @@ const socketIO = require('socket.io');
 const https = require('https');
 const app = express();
 const server = http.createServer(app);
+
+// App Service sits behind reverse proxies/load balancers; trust proxy headers.
+app.set('trust proxy', 1);
+
+const socketTransports = (process.env.SOCKET_IO_TRANSPORTS || 'websocket,polling')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+const disableWebsockets = String(process.env.DISABLE_WEBSOCKETS || '').toLowerCase() === 'true';
+
 const io = socketIO(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  transports: disableWebsockets ? ['polling'] : socketTransports,
+  pingInterval: 25000,
+  pingTimeout: 60000
 });
 const PORT = process.env.PORT || 3000;
+const INSTANCE_ID = process.env.WEBSITE_INSTANCE_ID || 'local';
+
+if (process.env.WEBSITE_INSTANCE_ID && !process.env.REDIS_URL) {
+  console.warn('Running on Azure App Service without REDIS_URL. Socket.IO broadcasts remain per-instance unless ARR affinity is enabled.');
+}
 const localStations = require('./public/stations.json');
 const localStationData = require('./public/stations-data.json');
 const localTrainsTracking = require('./public/trains-tracking.json');
@@ -471,7 +489,7 @@ app.get('/api/service-alerts', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), timestamp: Date.now() });
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: Date.now(), instanceId: INSTANCE_ID });
 });
 
 // Batch endpoint - fetch all line statuses efficiently
