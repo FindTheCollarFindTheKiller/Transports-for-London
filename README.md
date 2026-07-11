@@ -19,10 +19,7 @@ This application provides a timetable for the London Underground with the follow
 - Responsive layout for various screen sizes.
 
 ## Getting Started
-1. Clone the repository.
-2. Install dependencies using `npm install`.
-3. Run the application using `npm start`.
-4. Open your browser to `http://localhost:3000`.
+App is located at tfltrains.archadiaresearch.com
 
 ## Usage
 - **Lines & Timetables Tab**: Select a line to view stations and timetables

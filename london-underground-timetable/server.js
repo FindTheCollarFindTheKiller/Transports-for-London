@@ -41,28 +41,33 @@ let lastQueuePromise = Promise.resolve();
 const inFlightRequests = new Map();
 let retryAfterUntil = 0; // Track rate limit backoff until timestamp
 
+function getRequestKey(path, options = {}) {
+  return `${path}|${options.maxRetries ?? MAX_API_RETRY}|${options.requestTimeout ?? API_REQUEST_TIMEOUT}`;
+}
+
 function queueApiRequest(path, options = {}) {
-  if (inFlightRequests.has(path)) {
-    return inFlightRequests.get(path);
+  const requestKey = getRequestKey(path, options);
+  if (inFlightRequests.has(requestKey)) {
+    return inFlightRequests.get(requestKey);
   }
 
   const requestPromise = lastQueuePromise = lastQueuePromise.catch(() => {}).then(async () => {
-    const result = await executeApiRequest(path);
+    const result = await executeApiRequest(path, 0, options);
     return result;
   });
 
   const trackedPromise = requestPromise.then(
     (result) => {
-      inFlightRequests.delete(path);
+      inFlightRequests.delete(requestKey);
       return result;
     },
     (error) => {
-      inFlightRequests.delete(path);
+      inFlightRequests.delete(requestKey);
       throw error;
     }
   );
 
-  inFlightRequests.set(path, trackedPromise);
+  inFlightRequests.set(requestKey, trackedPromise);
   trackedPromise.catch(() => {});
 
   return trackedPromise;
@@ -75,7 +80,9 @@ function makeApiRequest(path, options = {}) {
   return queueApiRequest(path, options);
 }
 
-async function executeApiRequest(path, attempt = 0) {
+async function executeApiRequest(path, attempt = 0, options = {}) {
+  const maxRetries = options.maxRetries ?? MAX_API_RETRY;
+  const requestTimeout = options.requestTimeout ?? API_REQUEST_TIMEOUT;
   const now = Date.now();
   
   // Handle global rate limit backoff (when we receive 429)
@@ -140,7 +147,7 @@ async function executeApiRequest(path, attempt = 0) {
       reject(error);
     });
 
-    req.setTimeout(API_REQUEST_TIMEOUT, () => {
+    req.setTimeout(requestTimeout, () => {
       const timeoutError = new Error('Request timed out');
       timeoutError.isRetryable = true;
       req.destroy(timeoutError);
@@ -150,13 +157,13 @@ async function executeApiRequest(path, attempt = 0) {
   try {
     return await doRequest();
   } catch (error) {
-    if (attempt < MAX_API_RETRY && (error.isRetryable || error.statusCode === 429 || error.statusCode >= 500)) {
+    if (attempt < maxRetries && (error.isRetryable || error.statusCode === 429 || error.statusCode >= 500)) {
       const retryDelay = error.statusCode === 429 
         ? Math.max(2000, API_RETRY_DELAY * Math.pow(2, attempt)) 
         : API_RETRY_DELAY * Math.pow(2, attempt);
-      console.warn(`[${new Date().toLocaleTimeString()}] ⚠️ Retrying ${path} after ${retryDelay}ms (attempt ${attempt + 1}/${MAX_API_RETRY})`);
+      console.warn(`[${new Date().toLocaleTimeString()}] ⚠️ Retrying ${path} after ${retryDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
       await new Promise(res => setTimeout(res, retryDelay));
-      return executeApiRequest(path, attempt + 1);
+      return executeApiRequest(path, attempt + 1, options);
     }
     throw error;
   }
@@ -249,18 +256,32 @@ async function fetchAllArrivals(forceRefresh = false) {
 
   const lineIds = ['bakerloo','central','circle','district','hammersmith-city','jubilee','metropolitan','northern','piccadilly','victoria','waterloo-city'];
   const allArrivals = [];
+  const startedAt = Date.now();
+  const MAX_ARRIVAL_BATCH_DURATION = 15000;
 
   // Serialize requests to avoid rate limiting - fetch one line at a time with delays
   for (const lineId of lineIds) {
+    if ((Date.now() - startedAt) > MAX_ARRIVAL_BATCH_DURATION && allArrivals.length > 0) {
+      console.warn('Arrival batch time budget reached; returning partial live data');
+      break;
+    }
+
     try {
-      const arrivals = await makeApiRequest(`/Line/${lineId}/Arrivals`);
+      const arrivals = await makeApiRequest(`/Line/${lineId}/Arrivals`, {
+        maxRetries: 1,
+        requestTimeout: 5000
+      });
       if (Array.isArray(arrivals)) {
         allArrivals.push(...arrivals);
       }
       // Add delay between consecutive line requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 500));
+      await new Promise(res => setTimeout(res, 250));
     } catch (error) {
       console.warn(`Arrival request failed for ${lineId}:`, error.message);
+      if ((error.statusCode === 429 || error.message === 'Request timed out') && allArrivals.length > 0) {
+        console.warn('Returning partial arrivals after rate limit or timeout');
+        break;
+      }
     }
   }
 
@@ -540,6 +561,18 @@ async function resolveStopPoint(query) {
   return preferredMatch;
 }
 
+function getJourneyLocation(stopPoint, fallbackName) {
+  if (typeof stopPoint?.lat === 'number' && typeof stopPoint?.lon === 'number') {
+    return `${stopPoint.lat},${stopPoint.lon}`;
+  }
+
+  if (stopPoint?.id) {
+    return stopPoint.id;
+  }
+
+  return fallbackName;
+}
+
 function mapTfLJourney(journey, index) {
   const legs = Array.isArray(journey?.legs) ? journey.legs : [];
   const segments = legs.map((leg, legIndex) => {
@@ -620,7 +653,9 @@ async function fetchJourneyPlan(origin, destination) {
       throw new Error('Could not resolve station names');
     }
 
-    const journeyData = await makeApiRequest(`/Journey/JourneyResults/${encodeURIComponent(normalizedOrigin)}/to/${encodeURIComponent(normalizedDestination)}?mode=tube&journeyPreference=LeastTime`);
+    const journeyFrom = getJourneyLocation(fromStop, normalizedOrigin);
+    const journeyTo = getJourneyLocation(toStop, normalizedDestination);
+    const journeyData = await makeApiRequest(`/Journey/JourneyResults/${encodeURIComponent(journeyFrom)}/to/${encodeURIComponent(journeyTo)}?mode=tube&journeyPreference=LeastTime`);
     const routes = Array.isArray(journeyData?.journeys)
       ? journeyData.journeys.slice(0, 4).map(mapTfLJourney).filter(route => route.segments.length > 0)
       : [];
@@ -1074,6 +1109,10 @@ io.on('connection', async (socket) => {
   
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    if (io.engine.clientsCount === 0 && trainUpdateInterval) {
+      clearInterval(trainUpdateInterval);
+      trainUpdateInterval = null;
+    }
   });
 });
 
