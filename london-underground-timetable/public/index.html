@@ -2765,9 +2765,10 @@
           return null;
         }
 
-        async function fetchStatusSummary() {
+        async function fetchStatusSummary(forceRefresh = false) {
           try {
-            const response = await fetch('api/status/summary');
+            const url = 'api/status/summary' + (forceRefresh ? '?forceRefresh=true' : '');
+            const response = await fetch(url);
             if (!response.ok) {
               throw new Error(`Summary request failed: ${response.status}`);
             }
@@ -2778,8 +2779,8 @@
           }
         }
 
-        async function loadStatusSummary() {
-          const summaryData = await fetchStatusSummary();
+        async function loadStatusSummary(forceRefresh = false) {
+          const summaryData = await fetchStatusSummary(forceRefresh);
           if (!summaryData || !summaryData.summary) {
             document.getElementById('summaryUpdatedAt').textContent = 'Unavailable';
             return;
@@ -4857,7 +4858,7 @@
         document.getElementById('refreshStatusButton').addEventListener('click', async () => {
             document.getElementById('refreshStatusButton').textContent = 'Refreshing...';
             document.getElementById('refreshStatusButton').disabled = true;
-            await loadStatusSummary();
+            await loadStatusSummary(true);
             document.getElementById('refreshStatusButton').textContent = 'Refresh statuses';
             document.getElementById('refreshStatusButton').disabled = false;
         });
@@ -4869,7 +4870,7 @@
 
         async function refreshLiveTrains() {
             try {
-                const response = await fetch('api/live-trains');
+                const response = await fetch('api/live-trains?forceRefresh=true');
                 if (!response.ok) {
                     throw new Error('Unable to refresh live trains');
                 }
