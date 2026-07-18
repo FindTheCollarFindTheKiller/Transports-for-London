@@ -799,7 +799,8 @@ function summarizeStatuses(statusMap) {
 
 app.get('/api/status/summary', async (req, res) => {
   try {
-    const statuses = await fetchAllLineStatuses();
+    const forceRefresh = req.query.forceRefresh === 'true';
+    const statuses = await fetchAllLineStatuses(forceRefresh);
     const summary = summarizeStatuses(statuses || cachedLineStatuses);
     const lastUpdated = Math.max(...Object.values(lastLineStatusUpdate), Date.now());
     return res.json({ summary, lastUpdated });
@@ -1048,7 +1049,8 @@ async function fetchLiveTfLTrains(forceRefresh = false) {
 
 app.get('/api/live-trains', async (req, res) => {
   try {
-    const trains = await fetchLiveTfLTrains();
+    const forceRefresh = req.query.forceRefresh === 'true';
+    const trains = await fetchLiveTfLTrains(forceRefresh);
     res.json({ trains });
   } catch (error) {
     console.error('Error fetching live trains from TfL:', error.message);
