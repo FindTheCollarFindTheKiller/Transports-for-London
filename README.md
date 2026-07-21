@@ -7,6 +7,7 @@ This application provides a timetable for the London Underground with the follow
 - **Live train tracking**: Real-time tracking of trains across the network with WebSocket updates.
 
 ## Features
+
 - Interactive user interface for selecting lines and stations.
 - Real-time updates for train schedules.
 - **Live Train Tracking**: See trains in motion with:
@@ -14,19 +15,22 @@ This application provides a timetable for the London Underground with the follow
   - Distance progress to next station
   - Passenger load indicators
   - Train status (Running/Delayed)
-  - Updates every 2 seconds via WebSocket
+  - Updates every 30 seconds via WebSocket with cached TfL data between refreshes
 - Clear and intuitive design.
 - Responsive layout for various screen sizes.
 
 ## Getting Started
+
 App is located at tfltrains.archadiaresearch.com
 
 ## Usage
+
 - **Lines & Timetables Tab**: Select a line to view stations and timetables
 - **Station Information Tab**: Search for specific stations and see all serving lines
 - **Live Tracking Tab**: Monitor active trains in real-time with live position updates
 
 ## Technologies Used
+
 - **Frontend**: HTML5, CSS3, JavaScript, Socket.io Client
 - **Backend**: Node.js with Express, Socket.io Server
 - **Real-time Communication**: WebSocket (Socket.io)
@@ -34,7 +38,9 @@ App is located at tfltrains.archadiaresearch.com
 - **Data**: JSON-based local data (extensible to MongoDB)
 
 ## TfL API Integration
+
 The application now integrates with the official Transport for London API to provide:
+
 - **Real Line Information**: Fetch actual tube lines and status
 - **Station Search**: Search stations using TfL database
 - **Arrival Predictions**: Get next train predictions for stations
@@ -43,13 +49,16 @@ The application now integrates with the official Transport for London API to pro
 For detailed integration information, see [TFL_INTEGRATION.md](TFL_INTEGRATION.md)
 
 ### API Endpoints
+
 - `GET /api/lines` - Fetch all tube lines
 - `GET /api/line/:lineId/status` - Get line status
 - `GET /api/stoppoint/search?query=...` - Search stations
 - `GET /api/stoppoint/:stopId/arrivals` - Get next arrivals
 
 ## Live Train Tracking Features
+
 The Live Tracking feature provides:
+
 - **Train Position**: Current station index along the line
 - **Progress Bar**: Visual indicator of distance to next station
 - **Passenger Info**: Live passenger load levels (Quiet, Moderate, Busy, Very Busy)
@@ -58,7 +67,8 @@ The Live Tracking feature provides:
 - **Real-time Updates**: WebSocket connection ensures live data streaming
 
 ## Project Structure
-```
+
+```text
 london-underground-timetable/
 ├── server.js                    # Express server with Socket.io
 ├── package.json                 # Dependencies
@@ -72,6 +82,7 @@ london-underground-timetable/
 ```
 
 ## Future Enhancements
+
 - Integrate with TfL API for real-time data
 - Add accessibility features for visually impaired users
 - Mobile app version
@@ -80,12 +91,31 @@ london-underground-timetable/
 - User accounts and saved preferences
 
 ## Running the Development Server
+
 For development with auto-reload:
+
 ```bash
 npm run dev
 ```
 
 If you are running commands from the workspace root (`Learning_Workspace`), this script will automatically change into `london-underground-timetable` and start the app there.
+
+## Azure App Service Deployment
+
+This app is ready to deploy to Azure App Service on Linux.
+
+Provision the infrastructure with the files in [infra/main.bicep](infra/main.bicep) and [infra/main.parameters.json](infra/main.parameters.json), then deploy the verified zip artifact [london-underground-timetable-1.0.0.zip](london-underground-timetable-1.0.0.zip) using zip deployment.
+
+Suggested flow:
+
+```bash
+az group create --name <resource-group> --location <region>
+az deployment group what-if --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json prefix=<app-name-prefix>
+az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json prefix=<app-name-prefix>
+az webapp deploy --resource-group <resource-group> --name <app-name-prefix>-web --src-path london-underground-timetable-1.0.0.zip --type zip
+```
+
+For the full deployment rationale and resource plan, see [.azure/plan.copilotmd](.azure/plan.copilotmd).
 
 ---
 
