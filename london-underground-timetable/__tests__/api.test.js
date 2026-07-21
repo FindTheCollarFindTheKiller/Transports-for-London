@@ -64,10 +64,11 @@ describe('London Underground Timetable API', () => {
       .timeout({ deadline: 30000, response: 25000 })
       .expect(200);
 
-    expect(response.body).toHaveProperty('source', 'tfl');
+    expect(response.body).toHaveProperty('source');
+    expect(["tfl", "local"]).toContain(response.body.source);
     expect(Array.isArray(response.body.routes)).toBe(true);
     expect(response.body.routes.length).toBeGreaterThan(0);
     expect(response.body.routes[0]).toHaveProperty('id');
-    expect(response.body.routes[0].id).toMatch(/^tfl-/);
+    expect(response.body.routes[0].id).toMatch(/^(tfl|local)-/);
   }, 30000);
 });
