@@ -4255,8 +4255,18 @@
             const maxStops = 80;
 
             while (queue.length > 0 && solutions.length < maxRoutes) {
-                queue.sort(compareRoutes);
-                const current = queue.shift();
+                let bestIndex = 0;
+                for (let i = 1; i < queue.length; i++) {
+                    if (queue[i].transfers < queue[bestIndex].transfers) {
+                        bestIndex = i;
+                    } else if (queue[i].transfers === queue[bestIndex].transfers && queue[i].stops < queue[bestIndex].stops) {
+                        bestIndex = i;
+                    }
+                }
+                const current = queue[bestIndex];
+                queue[bestIndex] = queue[queue.length - 1];
+                queue.pop();
+
                 if (current.stops > maxStops) {
                     continue;
                 }
