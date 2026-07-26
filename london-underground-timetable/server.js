@@ -80,28 +80,8 @@ function makeApiRequest(path, options = {}) {
   return queueApiRequest(path, options);
 }
 
-async function executeApiRequest(path, attempt = 0, options = {}) {
-  const maxRetries = options.maxRetries ?? MAX_API_RETRY;
-  const requestTimeout = options.requestTimeout ?? API_REQUEST_TIMEOUT;
-  const now = Date.now();
-  
-  // Handle global rate limit backoff (when we receive 429)
-  if (now < retryAfterUntil) {
-    const backoffDelay = retryAfterUntil - now;
-    console.warn(`[${new Date().toLocaleTimeString()}] ⏸️ Global rate limit backoff for ${backoffDelay}ms`);
-    await new Promise(res => setTimeout(res, backoffDelay));
-  }
-  
-  // Add delay to respect rate limits between requests
-  const delay = Math.max(0, API_RATE_LIMIT - (now - lastApiCall));
-  if (delay > 0) {
-    await new Promise(res => setTimeout(res, delay));
-  }
-  lastApiCall = Date.now();
-  const url = `${TFL_API_BASE}${path}`;
-  console.log(`[${new Date().toLocaleTimeString()}] API Request (attempt ${attempt + 1}): ${path}`);
-
-  const doRequest = () => new Promise((resolve, reject) => {
+function performHttpRequest(url, path, requestTimeout) {
+  return new Promise((resolve, reject) => {
     const req = https.get(url, TFL_OPTIONS, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -153,9 +133,31 @@ async function executeApiRequest(path, attempt = 0, options = {}) {
       req.destroy(timeoutError);
     });
   });
+}
+
+async function executeApiRequest(path, attempt = 0, options = {}) {
+  const maxRetries = options.maxRetries ?? MAX_API_RETRY;
+  const requestTimeout = options.requestTimeout ?? API_REQUEST_TIMEOUT;
+  const now = Date.now();
+
+  // Handle global rate limit backoff (when we receive 429)
+  if (now < retryAfterUntil) {
+    const backoffDelay = retryAfterUntil - now;
+    console.warn(`[${new Date().toLocaleTimeString()}] ⏸️ Global rate limit backoff for ${backoffDelay}ms`);
+    await new Promise(res => setTimeout(res, backoffDelay));
+  }
+
+  // Add delay to respect rate limits between requests
+  const delay = Math.max(0, API_RATE_LIMIT - (now - lastApiCall));
+  if (delay > 0) {
+    await new Promise(res => setTimeout(res, delay));
+  }
+  lastApiCall = Date.now();
+  const url = `${TFL_API_BASE}${path}`;
+  console.log(`[${new Date().toLocaleTimeString()}] API Request (attempt ${attempt + 1}): ${path}`);
 
   try {
-    return await doRequest();
+    return await performHttpRequest(url, path, requestTimeout);
   } catch (error) {
     if (attempt < maxRetries && (error.isRetryable || error.statusCode === 429 || error.statusCode >= 500)) {
       const retryDelay = error.statusCode === 429 
