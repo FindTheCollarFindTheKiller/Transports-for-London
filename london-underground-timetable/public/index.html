@@ -2462,6 +2462,17 @@
     </div>
 
     <script>
+
+        function escapeHTML(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         const lineColors = {
             'Bakerloo': 'bakerloo',
             'Central': 'central',
@@ -3805,7 +3816,7 @@
             stationsDisplay.innerHTML = '';
             
             if (filteredStations.length === 0) {
-                stationsDisplay.innerHTML = `<div class="no-results">No stations match "${query}".</div>`;
+                stationsDisplay.innerHTML = `<div class="no-results">No stations match "${escapeHTML(query)}".</div>`;
                 return;
             }
             
@@ -4485,12 +4496,12 @@
             const destination = normalizeStationName(destinationRaw);
 
             if (!origin || !destination) {
-                results.innerHTML = `<div class="no-route">Could not match <strong>${originRaw || destinationRaw}</strong> to a valid station. Try using the suggestion list.</div>`;
+                results.innerHTML = `<div class="no-route">Could not match <strong>${escapeHTML(originRaw || destinationRaw)}</strong> to a valid station. Try using the suggestion list.</div>`;
                 return;
             }
 
             if (origin === destination) {
-                results.innerHTML = `<div class="no-route">Origin and destination are the same station: <strong>${origin}</strong>.</div>`;
+                results.innerHTML = `<div class="no-route">Origin and destination are the same station: <strong>${escapeHTML(origin)}</strong>.</div>`;
                 return;
             }
 
@@ -4514,7 +4525,7 @@
                 console.warn('Journey API unavailable, using local planner:', error.message);
                 const localRoutes = findRoutesBetweenStations(origin, destination, 4).map((route, index) => buildRouteDataFromPath(route.path, index));
                 if (!localRoutes.length) {
-                    results.innerHTML = `<div class="no-route">No route found between <strong>${origin}</strong> and <strong>${destination}</strong>. Try checking the station spelling or selecting nearby interchange stations.</div>`;
+                    results.innerHTML = `<div class="no-route">No route found between <strong>${escapeHTML(origin)}</strong> and <strong>${escapeHTML(destination)}</strong>. Try checking the station spelling or selecting nearby interchange stations.</div>`;
                     if (plannerMap) {
                         clearPlannerRouteOverlay();
                     }
