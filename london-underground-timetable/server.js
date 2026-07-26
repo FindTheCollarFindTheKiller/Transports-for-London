@@ -411,15 +411,39 @@ function createLocalStationGraph() {
   return localStationGraph;
 }
 
+let canonicalizedStationCache = null;
+function getCanonicalizedStations() {
+  if (canonicalizedStationCache) return canonicalizedStationCache;
+  const stationNames = Object.keys(createLocalStationGraph());
+  canonicalizedStationCache = stationNames.map(station => ({
+    original: station,
+    canonicalized: canonicalizeStationName(station)
+  }));
+  return canonicalizedStationCache;
+}
+
 function normalizeStationName(query) {
   if (!query || !query.trim()) return null;
   const normalized = canonicalizeStationName(query);
-  const stationNames = Object.keys(createLocalStationGraph());
-  const exactMatch = stationNames.find(station => canonicalizeStationName(station) === normalized);
-  if (exactMatch) return exactMatch;
-  const prefixMatch = stationNames.find(station => canonicalizeStationName(station).startsWith(normalized));
-  if (prefixMatch) return prefixMatch;
-  return stationNames.find(station => canonicalizeStationName(station).includes(normalized)) || null;
+  const stations = getCanonicalizedStations();
+
+  let prefixMatch = null;
+  let includesMatch = null;
+
+  for (let i = 0; i < stations.length; i++) {
+    const station = stations[i];
+    if (station.canonicalized === normalized) {
+      return station.original;
+    }
+    if (!prefixMatch && station.canonicalized.startsWith(normalized)) {
+      prefixMatch = station.original;
+    }
+    if (!includesMatch && station.canonicalized.includes(normalized)) {
+      includesMatch = station.original;
+    }
+  }
+
+  return prefixMatch || includesMatch || null;
 }
 
 function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
