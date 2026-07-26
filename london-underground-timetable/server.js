@@ -99,7 +99,6 @@ async function executeApiRequest(path, attempt = 0, options = {}) {
   }
   lastApiCall = Date.now();
   const url = `${TFL_API_BASE}${path}`;
-  console.log(`[${new Date().toLocaleTimeString()}] API Request (attempt ${attempt + 1}): ${path}`);
 
   const doRequest = () => new Promise((resolve, reject) => {
     const req = https.get(url, TFL_OPTIONS, (res) => {
@@ -109,7 +108,6 @@ async function executeApiRequest(path, attempt = 0, options = {}) {
         if (res.statusCode === 200) {
           try {
             const parsed = JSON.parse(data);
-            console.log(`[${new Date().toLocaleTimeString()}] ✓ Success: ${path} (${Array.isArray(parsed) ? parsed.length : 'object'} items)`);
             // Reset backoff on success
             retryAfterUntil = 0;
             resolve(parsed);
@@ -136,7 +134,6 @@ async function executeApiRequest(path, attempt = 0, options = {}) {
           }
         }
         
-        console.log(`[${new Date().toLocaleTimeString()}] ✗ Failed: ${path} (${message})`);
         reject(error);
       });
     });
