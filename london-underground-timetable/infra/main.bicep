@@ -53,6 +53,10 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'
           value: '~20'
         }
+        {
+          name: 'ALLOWED_ORIGINS'
+          value: 'https://${webAppName}.azurewebsites.net'
+        }
       ]
     }
   }
