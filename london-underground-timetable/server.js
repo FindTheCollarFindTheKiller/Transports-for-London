@@ -189,6 +189,27 @@ const STOP_SEARCH_CACHE_DURATION = 600000; // 10 minutes (unchanged - already 5 
 const ALL_ARRIVALS_CACHE_DURATION = 30000; // 30 seconds (increased from 15s)
 const JOURNEY_PLAN_CACHE_DURATION = 120000; // 2 minutes
 
+async function fetchFallbackLineStatuses(now) {
+  // Fallback: serialize individual line requests instead of parallel to avoid rate limiting
+  const fallbackLineIds = Array.from(new Set(Object.values(lineNameToId)));
+  const statusMap = {};
+
+  for (const lineId of fallbackLineIds) {
+    try {
+      const status = await makeApiRequest(`/Line/${lineId}/Status`);
+      statusMap[lineId] = status;
+      cachedLineStatuses[lineId] = status;
+      lastLineStatusUpdate[lineId] = now;
+      // Add delay between requests to avoid rate limiting
+      await new Promise(res => setTimeout(res, 300));
+    } catch (error) {
+      console.warn(`Fallback status request failed for ${lineId}:`, error.message);
+    }
+  }
+
+  return statusMap;
+}
+
 async function fetchAllLineStatuses(forceRefresh = false) {
   const now = Date.now();
   if (!forceRefresh && cachedAllLineStatuses && (now - lastAllLineStatusesUpdate) < LINE_STATUS_CACHE_DURATION) {
@@ -222,24 +243,7 @@ async function fetchAllLineStatuses(forceRefresh = false) {
     console.warn('Batch line status fetch failed, falling back to individual line requests:', error.message);
   }
 
-  // Fallback: serialize individual line requests instead of parallel to avoid rate limiting
-  const fallbackLineIds = Array.from(new Set(Object.values(lineNameToId)));
-  const statusMap = {};
-  
-  for (const lineId of fallbackLineIds) {
-    try {
-      const status = await makeApiRequest(`/Line/${lineId}/Status`);
-      statusMap[lineId] = status;
-      cachedLineStatuses[lineId] = status;
-      lastLineStatusUpdate[lineId] = now;
-      // Add delay between requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 300));
-    } catch (error) {
-      console.warn(`Fallback status request failed for ${lineId}:`, error.message);
-    }
-  }
-
-  cachedAllLineStatuses = statusMap;
+  cachedAllLineStatuses = await fetchFallbackLineStatuses(now);
   lastAllLineStatusesUpdate = now;
   return cachedAllLineStatuses;
 }
