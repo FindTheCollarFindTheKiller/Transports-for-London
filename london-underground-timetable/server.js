@@ -522,20 +522,36 @@ function buildSegmentsFromPath(path) {
   }));
 }
 
-function buildLocalJourneyResponse(origin, destination) {
-  const routes = findLocalRoutesBetweenStations(origin, destination, 4).map((route, index) => ({
+function calculateRouteDuration(stops) {
+  return Math.max(1, stops * 2);
+}
+
+function generateRouteSummary(transfers) {
+  return transfers === 0
+    ? 'Direct route from timetable data'
+    : `${transfers} transfer${transfers === 1 ? '' : 's'} from timetable data`;
+}
+
+function formatLocalRoute(route, index, origin, destination) {
+  return {
     id: `local-${index + 1}`,
     source: 'local',
     origin: route.path[0]?.station || origin,
     destination: route.path[route.path.length - 1]?.station || destination,
-    durationMinutes: Math.max(1, route.stops * 2),
+    durationMinutes: calculateRouteDuration(route.stops),
     transfers: route.transfers,
     stops: route.stops,
-    summary: route.transfers === 0 ? 'Direct route from timetable data' : `${route.transfers} transfer${route.transfers === 1 ? '' : 's'} from timetable data`,
+    summary: generateRouteSummary(route.transfers),
     warnings: ['Live TfL journey data unavailable. Showing timetable-based route.'],
     segments: buildSegmentsFromPath(route.path),
     path: route.path
-  }));
+  };
+}
+
+function buildLocalJourneyResponse(origin, destination) {
+  const routes = findLocalRoutesBetweenStations(origin, destination, 4).map((route, index) =>
+    formatLocalRoute(route, index, origin, destination)
+  );
 
   return {
     routes,
