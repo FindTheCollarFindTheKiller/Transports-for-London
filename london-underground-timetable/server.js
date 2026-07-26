@@ -507,7 +507,8 @@ function buildSegmentsFromPath(path) {
 
   for (let i = 1; i < path.length; i += 1) {
     const step = path[i];
-    if (step.line !== segment.line) {
+    const stepLine = step.line || 'Unknown';
+    if (stepLine !== segment.line) {
       segments.push(segment);
       segment = { line: step.line || 'Unknown', stations: [path[i - 1].station] };
     }
@@ -1140,4 +1141,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, server, io };
+module.exports = { app, server, io, buildSegmentsFromPath };
