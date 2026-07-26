@@ -222,6 +222,10 @@ async function fetchAllLineStatuses(forceRefresh = false) {
     console.warn('Batch line status fetch failed, falling back to individual line requests:', error.message);
   }
 
+  return await fetchFallbackLineStatuses(now);
+}
+
+async function fetchFallbackLineStatuses(now) {
   // Fallback: serialize individual line requests instead of parallel to avoid rate limiting
   const fallbackLineIds = Array.from(new Set(Object.values(lineNameToId)));
   const statusMap = {};
