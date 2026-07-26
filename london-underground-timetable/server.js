@@ -426,6 +426,52 @@ function normalizeStationName(query) {
   return stationNames.find(station => canonicalizeStationName(station).includes(normalized)) || null;
 }
 
+
+class MinHeap {
+  constructor(compare) {
+    this.heap = [];
+    this.compare = compare;
+  }
+  push(item) {
+    this.heap.push(item);
+    this._siftUp(this.heap.length - 1);
+  }
+  pop() {
+    if (this.heap.length === 0) return null;
+    if (this.heap.length === 1) return this.heap.pop();
+    const top = this.heap[0];
+    this.heap[0] = this.heap.pop();
+    this._siftDown(0);
+    return top;
+  }
+  get length() { return this.heap.length; }
+  _siftUp(index) {
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (this.compare(this.heap[index], this.heap[parent]) < 0) {
+        const temp = this.heap[index];
+        this.heap[index] = this.heap[parent];
+        this.heap[parent] = temp;
+        index = parent;
+      } else break;
+    }
+  }
+  _siftDown(index) {
+    const length = this.heap.length;
+    while (true) {
+      let left = 2 * index + 1, right = 2 * index + 2, smallest = index;
+      if (left < length && this.compare(this.heap[left], this.heap[smallest]) < 0) smallest = left;
+      if (right < length && this.compare(this.heap[right], this.heap[smallest]) < 0) smallest = right;
+      if (smallest !== index) {
+        const temp = this.heap[index];
+        this.heap[index] = this.heap[smallest];
+        this.heap[smallest] = temp;
+        index = smallest;
+      } else break;
+    }
+  }
+}
+
 function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
   const graph = createLocalStationGraph();
   const start = normalizeStationName(origin);
@@ -440,29 +486,20 @@ function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
     return 0;
   };
 
-  const queue = [{
+  const queue = new MinHeap(compareRoutes);
+  queue.push({
     station: start,
     line: null,
     path: [{ station: start, line: null }],
     transfers: 0,
     stops: 0
-  }];
+  });
   const visited = new Map();
   const solutions = [];
   const maxStops = 80;
 
   while (queue.length > 0 && solutions.length < maxRoutes) {
-    let bestIndex = 0;
-    for (let i = 1; i < queue.length; i++) {
-      if (queue[i].transfers < queue[bestIndex].transfers) {
-        bestIndex = i;
-      } else if (queue[i].transfers === queue[bestIndex].transfers && queue[i].stops < queue[bestIndex].stops) {
-        bestIndex = i;
-      }
-    }
-    const current = queue[bestIndex];
-    queue[bestIndex] = queue[queue.length - 1];
-    queue.pop();
+    const current = queue.pop();
 
     if (current.stops > maxStops) {
       continue;
