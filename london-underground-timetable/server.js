@@ -422,6 +422,46 @@ function normalizeStationName(query) {
   return stationNames.find(station => canonicalizeStationName(station).includes(normalized)) || null;
 }
 
+function compareRoutes(a, b) {
+  if (a.transfers !== b.transfers) return a.transfers - b.transfers;
+  if (a.stops !== b.stops) return a.stops - b.stops;
+  return 0;
+}
+
+function getBestRouteIndex(queue) {
+  let bestIndex = 0;
+  for (let i = 1; i < queue.length; i++) {
+    if (queue[i].transfers < queue[bestIndex].transfers) {
+      bestIndex = i;
+    } else if (queue[i].transfers === queue[bestIndex].transfers && queue[i].stops < queue[bestIndex].stops) {
+      bestIndex = i;
+    }
+  }
+  return bestIndex;
+}
+
+function processNeighbors(current, graph, visited, queue) {
+  for (const edge of graph[current.station] || []) {
+    const nextTransfers = current.line === null || current.line === edge.line ? current.transfers : current.transfers + 1;
+    const nextStops = current.stops + 1;
+    const key = `${edge.station}|${edge.line}`;
+    const best = visited.get(key);
+
+    if (best && best.transfers <= nextTransfers && best.stops <= nextStops) {
+      continue;
+    }
+
+    visited.set(key, { transfers: nextTransfers, stops: nextStops });
+    queue.push({
+      station: edge.station,
+      line: edge.line,
+      path: [...current.path, { station: edge.station, line: edge.line }],
+      transfers: nextTransfers,
+      stops: nextStops
+    });
+  }
+}
+
 function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
   const graph = createLocalStationGraph();
   const start = normalizeStationName(origin);
@@ -429,12 +469,6 @@ function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
   if (!start || !end) {
     return [];
   }
-
-  const compareRoutes = (a, b) => {
-    if (a.transfers !== b.transfers) return a.transfers - b.transfers;
-    if (a.stops !== b.stops) return a.stops - b.stops;
-    return 0;
-  };
 
   const queue = [{
     station: start,
@@ -448,14 +482,8 @@ function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
   const maxStops = 80;
 
   while (queue.length > 0 && solutions.length < maxRoutes) {
-    let bestIndex = 0;
-    for (let i = 1; i < queue.length; i++) {
-      if (queue[i].transfers < queue[bestIndex].transfers) {
-        bestIndex = i;
-      } else if (queue[i].transfers === queue[bestIndex].transfers && queue[i].stops < queue[bestIndex].stops) {
-        bestIndex = i;
-      }
-    }
+    const bestIndex = getBestRouteIndex(queue);
+
     const current = queue[bestIndex];
     queue[bestIndex] = queue[queue.length - 1];
     queue.pop();
@@ -469,25 +497,7 @@ function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
       continue;
     }
 
-    for (const edge of graph[current.station] || []) {
-      const nextTransfers = current.line === null || current.line === edge.line ? current.transfers : current.transfers + 1;
-      const nextStops = current.stops + 1;
-      const key = `${edge.station}|${edge.line}`;
-      const best = visited.get(key);
-
-      if (best && best.transfers <= nextTransfers && best.stops <= nextStops) {
-        continue;
-      }
-
-      visited.set(key, { transfers: nextTransfers, stops: nextStops });
-      queue.push({
-        station: edge.station,
-        line: edge.line,
-        path: [...current.path, { station: edge.station, line: edge.line }],
-        transfers: nextTransfers,
-        stops: nextStops
-      });
-    }
+    processNeighbors(current, graph, visited, queue);
   }
 
   return solutions.sort(compareRoutes);
