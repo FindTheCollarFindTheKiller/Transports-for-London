@@ -3805,7 +3805,10 @@
             stationsDisplay.innerHTML = '';
             
             if (filteredStations.length === 0) {
-                stationsDisplay.innerHTML = `<div class="no-results">No stations match "${query}".</div>`;
+                const noResultsDiv = document.createElement('div');
+                noResultsDiv.className = 'no-results';
+                noResultsDiv.textContent = `No stations match "${query}".`;
+                stationsDisplay.appendChild(noResultsDiv);
                 return;
             }
             
@@ -4485,12 +4488,28 @@
             const destination = normalizeStationName(destinationRaw);
 
             if (!origin || !destination) {
-                results.innerHTML = `<div class="no-route">Could not match <strong>${originRaw || destinationRaw}</strong> to a valid station. Try using the suggestion list.</div>`;
+                results.innerHTML = '';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'no-route';
+                const strong = document.createElement('strong');
+                strong.textContent = originRaw || destinationRaw;
+                errorDiv.appendChild(document.createTextNode('Could not match '));
+                errorDiv.appendChild(strong);
+                errorDiv.appendChild(document.createTextNode(' to a valid station. Try using the suggestion list.'));
+                results.appendChild(errorDiv);
                 return;
             }
 
             if (origin === destination) {
-                results.innerHTML = `<div class="no-route">Origin and destination are the same station: <strong>${origin}</strong>.</div>`;
+                results.innerHTML = '';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'no-route';
+                const strong = document.createElement('strong');
+                strong.textContent = origin;
+                errorDiv.appendChild(document.createTextNode('Origin and destination are the same station: '));
+                errorDiv.appendChild(strong);
+                errorDiv.appendChild(document.createTextNode('.'));
+                results.appendChild(errorDiv);
                 return;
             }
 
@@ -4514,7 +4533,23 @@
                 console.warn('Journey API unavailable, using local planner:', error.message);
                 const localRoutes = findRoutesBetweenStations(origin, destination, 4).map((route, index) => buildRouteDataFromPath(route.path, index));
                 if (!localRoutes.length) {
-                    results.innerHTML = `<div class="no-route">No route found between <strong>${origin}</strong> and <strong>${destination}</strong>. Try checking the station spelling or selecting nearby interchange stations.</div>`;
+                    results.innerHTML = '';
+                const errorDiv = document.createElement('div');
+                    errorDiv.className = 'no-route';
+
+                    const originStrong = document.createElement('strong');
+                    originStrong.textContent = origin;
+
+                    const destStrong = document.createElement('strong');
+                    destStrong.textContent = destination;
+
+                    errorDiv.appendChild(document.createTextNode('No route found between '));
+                    errorDiv.appendChild(originStrong);
+                    errorDiv.appendChild(document.createTextNode(' and '));
+                    errorDiv.appendChild(destStrong);
+                    errorDiv.appendChild(document.createTextNode('. Try checking the station spelling or selecting nearby interchange stations.'));
+
+                    results.appendChild(errorDiv);
                     if (plannerMap) {
                         clearPlannerRouteOverlay();
                     }
