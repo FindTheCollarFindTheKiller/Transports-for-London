@@ -80,28 +80,8 @@ function makeApiRequest(path, options = {}) {
   return queueApiRequest(path, options);
 }
 
-async function executeApiRequest(path, attempt = 0, options = {}) {
-  const maxRetries = options.maxRetries ?? MAX_API_RETRY;
-  const requestTimeout = options.requestTimeout ?? API_REQUEST_TIMEOUT;
-  const now = Date.now();
-  
-  // Handle global rate limit backoff (when we receive 429)
-  if (now < retryAfterUntil) {
-    const backoffDelay = retryAfterUntil - now;
-    console.warn(`[${new Date().toLocaleTimeString()}] ⏸️ Global rate limit backoff for ${backoffDelay}ms`);
-    await new Promise(res => setTimeout(res, backoffDelay));
-  }
-  
-  // Add delay to respect rate limits between requests
-  const delay = Math.max(0, API_RATE_LIMIT - (now - lastApiCall));
-  if (delay > 0) {
-    await new Promise(res => setTimeout(res, delay));
-  }
-  lastApiCall = Date.now();
-  const url = `${TFL_API_BASE}${path}`;
-  console.log(`[${new Date().toLocaleTimeString()}] API Request (attempt ${attempt + 1}): ${path}`);
-
-  const doRequest = () => new Promise((resolve, reject) => {
+function performHttpRequest(url, path, requestTimeout) {
+  return new Promise((resolve, reject) => {
     const req = https.get(url, TFL_OPTIONS, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -153,9 +133,31 @@ async function executeApiRequest(path, attempt = 0, options = {}) {
       req.destroy(timeoutError);
     });
   });
+}
+
+async function executeApiRequest(path, attempt = 0, options = {}) {
+  const maxRetries = options.maxRetries ?? MAX_API_RETRY;
+  const requestTimeout = options.requestTimeout ?? API_REQUEST_TIMEOUT;
+  const now = Date.now();
+
+  // Handle global rate limit backoff (when we receive 429)
+  if (now < retryAfterUntil) {
+    const backoffDelay = retryAfterUntil - now;
+    console.warn(`[${new Date().toLocaleTimeString()}] ⏸️ Global rate limit backoff for ${backoffDelay}ms`);
+    await new Promise(res => setTimeout(res, backoffDelay));
+  }
+
+  // Add delay to respect rate limits between requests
+  const delay = Math.max(0, API_RATE_LIMIT - (now - lastApiCall));
+  if (delay > 0) {
+    await new Promise(res => setTimeout(res, delay));
+  }
+  lastApiCall = Date.now();
+  const url = `${TFL_API_BASE}${path}`;
+  console.log(`[${new Date().toLocaleTimeString()}] API Request (attempt ${attempt + 1}): ${path}`);
 
   try {
-    return await doRequest();
+    return await performHttpRequest(url, path, requestTimeout);
   } catch (error) {
     if (attempt < maxRetries && (error.isRetryable || error.statusCode === 429 || error.statusCode >= 500)) {
       const retryDelay = error.statusCode === 429 
@@ -188,6 +190,27 @@ const LINE_STATUS_CACHE_DURATION = 120000; // 2 minutes (increased from 1 minute
 const STOP_SEARCH_CACHE_DURATION = 600000; // 10 minutes (unchanged - already 5 minutes)
 const ALL_ARRIVALS_CACHE_DURATION = 30000; // 30 seconds (increased from 15s)
 const JOURNEY_PLAN_CACHE_DURATION = 120000; // 2 minutes
+
+async function fetchFallbackLineStatuses(now) {
+  // Fallback: serialize individual line requests instead of parallel to avoid rate limiting
+  const fallbackLineIds = Array.from(new Set(Object.values(lineNameToId)));
+  const statusMap = {};
+
+  for (const lineId of fallbackLineIds) {
+    try {
+      const status = await makeApiRequest(`/Line/${lineId}/Status`);
+      statusMap[lineId] = status;
+      cachedLineStatuses[lineId] = status;
+      lastLineStatusUpdate[lineId] = now;
+      // Add delay between requests to avoid rate limiting
+      await new Promise(res => setTimeout(res, 300));
+    } catch (error) {
+      console.warn(`Fallback status request failed for ${lineId}:`, error.message);
+    }
+  }
+
+  return statusMap;
+}
 
 async function fetchAllLineStatuses(forceRefresh = false) {
   const now = Date.now();
@@ -222,28 +245,7 @@ async function fetchAllLineStatuses(forceRefresh = false) {
     console.warn('Batch line status fetch failed, falling back to individual line requests:', error.message);
   }
 
-  return await fetchFallbackLineStatuses(now);
-}
-
-async function fetchFallbackLineStatuses(now) {
-  // Fallback: serialize individual line requests instead of parallel to avoid rate limiting
-  const fallbackLineIds = Array.from(new Set(Object.values(lineNameToId)));
-  const statusMap = {};
-  
-  for (const lineId of fallbackLineIds) {
-    try {
-      const status = await makeApiRequest(`/Line/${lineId}/Status`);
-      statusMap[lineId] = status;
-      cachedLineStatuses[lineId] = status;
-      lastLineStatusUpdate[lineId] = now;
-      // Add delay between requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 300));
-    } catch (error) {
-      console.warn(`Fallback status request failed for ${lineId}:`, error.message);
-    }
-  }
-
-  cachedAllLineStatuses = statusMap;
+  cachedAllLineStatuses = await fetchFallbackLineStatuses(now);
   lastAllLineStatusesUpdate = now;
   return cachedAllLineStatuses;
 }
@@ -415,15 +417,85 @@ function createLocalStationGraph() {
   return localStationGraph;
 }
 
+let canonicalizedStationCache = null;
+function getCanonicalizedStations() {
+  if (canonicalizedStationCache) return canonicalizedStationCache;
+  const stationNames = Object.keys(createLocalStationGraph());
+  canonicalizedStationCache = stationNames.map(station => ({
+    original: station,
+    canonicalized: canonicalizeStationName(station)
+  }));
+  return canonicalizedStationCache;
+}
+
 function normalizeStationName(query) {
   if (!query || !query.trim()) return null;
   const normalized = canonicalizeStationName(query);
-  const stationNames = Object.keys(createLocalStationGraph());
-  const exactMatch = stationNames.find(station => canonicalizeStationName(station) === normalized);
-  if (exactMatch) return exactMatch;
-  const prefixMatch = stationNames.find(station => canonicalizeStationName(station).startsWith(normalized));
-  if (prefixMatch) return prefixMatch;
-  return stationNames.find(station => canonicalizeStationName(station).includes(normalized)) || null;
+  const stations = getCanonicalizedStations();
+
+  let prefixMatch = null;
+  let includesMatch = null;
+
+  for (let i = 0; i < stations.length; i++) {
+    const station = stations[i];
+    if (station.canonicalized === normalized) {
+      return station.original;
+    }
+    if (!prefixMatch && station.canonicalized.startsWith(normalized)) {
+      prefixMatch = station.original;
+    }
+    if (!includesMatch && station.canonicalized.includes(normalized)) {
+      includesMatch = station.original;
+    }
+  }
+
+  return prefixMatch || includesMatch || null;
+}
+
+
+class MinHeap {
+  constructor(compare) {
+    this.heap = [];
+    this.compare = compare;
+  }
+  push(item) {
+    this.heap.push(item);
+    this._siftUp(this.heap.length - 1);
+  }
+  pop() {
+    if (this.heap.length === 0) return null;
+    if (this.heap.length === 1) return this.heap.pop();
+    const top = this.heap[0];
+    this.heap[0] = this.heap.pop();
+    this._siftDown(0);
+    return top;
+  }
+  get length() { return this.heap.length; }
+  _siftUp(index) {
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (this.compare(this.heap[index], this.heap[parent]) < 0) {
+        const temp = this.heap[index];
+        this.heap[index] = this.heap[parent];
+        this.heap[parent] = temp;
+        index = parent;
+      } else break;
+    }
+  }
+  _siftDown(index) {
+    const length = this.heap.length;
+    while (true) {
+      let left = 2 * index + 1, right = 2 * index + 2, smallest = index;
+      if (left < length && this.compare(this.heap[left], this.heap[smallest]) < 0) smallest = left;
+      if (right < length && this.compare(this.heap[right], this.heap[smallest]) < 0) smallest = right;
+      if (smallest !== index) {
+        const temp = this.heap[index];
+        this.heap[index] = this.heap[smallest];
+        this.heap[smallest] = temp;
+        index = smallest;
+      } else break;
+    }
+  }
 }
 
 function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
@@ -440,29 +512,20 @@ function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
     return 0;
   };
 
-  const queue = [{
+  const queue = new MinHeap(compareRoutes);
+  queue.push({
     station: start,
     line: null,
     path: [{ station: start, line: null }],
     transfers: 0,
     stops: 0
-  }];
+  });
   const visited = new Map();
   const solutions = [];
   const maxStops = 80;
 
   while (queue.length > 0 && solutions.length < maxRoutes) {
-    let bestIndex = 0;
-    for (let i = 1; i < queue.length; i++) {
-      if (queue[i].transfers < queue[bestIndex].transfers) {
-        bestIndex = i;
-      } else if (queue[i].transfers === queue[bestIndex].transfers && queue[i].stops < queue[bestIndex].stops) {
-        bestIndex = i;
-      }
-    }
-    const current = queue[bestIndex];
-    queue[bestIndex] = queue[queue.length - 1];
-    queue.pop();
+    const current = queue.pop();
 
     if (current.stops > maxStops) {
       continue;
@@ -526,20 +589,36 @@ function buildSegmentsFromPath(path) {
   }));
 }
 
-function buildLocalJourneyResponse(origin, destination) {
-  const routes = findLocalRoutesBetweenStations(origin, destination, 4).map((route, index) => ({
+function calculateRouteDuration(stops) {
+  return Math.max(1, stops * 2);
+}
+
+function generateRouteSummary(transfers) {
+  return transfers === 0
+    ? 'Direct route from timetable data'
+    : `${transfers} transfer${transfers === 1 ? '' : 's'} from timetable data`;
+}
+
+function formatLocalRoute(route, index, origin, destination) {
+  return {
     id: `local-${index + 1}`,
     source: 'local',
     origin: route.path[0]?.station || origin,
     destination: route.path[route.path.length - 1]?.station || destination,
-    durationMinutes: Math.max(1, route.stops * 2),
+    durationMinutes: calculateRouteDuration(route.stops),
     transfers: route.transfers,
     stops: route.stops,
-    summary: route.transfers === 0 ? 'Direct route from timetable data' : `${route.transfers} transfer${route.transfers === 1 ? '' : 's'} from timetable data`,
+    summary: generateRouteSummary(route.transfers),
     warnings: ['Live TfL journey data unavailable. Showing timetable-based route.'],
     segments: buildSegmentsFromPath(route.path),
     path: route.path
-  }));
+  };
+}
+
+function buildLocalJourneyResponse(origin, destination) {
+  const routes = findLocalRoutesBetweenStations(origin, destination, 4).map((route, index) =>
+    formatLocalRoute(route, index, origin, destination)
+  );
 
   return {
     routes,
@@ -1140,4 +1219,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, server, io };
+module.exports = { app, server, io, normalizeStationName };
