@@ -8,7 +8,7 @@ param location string = resourceGroup().location
 param appServicePlanSku string = 'B1'
 
 @description('Node.js runtime stack for the Linux Web App.')
-param nodeRuntime string = 'NODE|20-lts'
+param nodeRuntime string = 'NODE|24-lts'
 
 var appServicePlanName = '${prefix}-plan'
 var webAppName = '${prefix}-web'
