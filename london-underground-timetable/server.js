@@ -293,24 +293,6 @@ async function fetchAllArrivals(forceRefresh = false) {
 const lineRouteCache = new Map();
 const ROUTE_CACHE_DURATION = 600000; // 10 minutes
 
-async function loadTubeLines() {
-  const now = Date.now();
-  if (!cachedLines || (now - lastLinesUpdate) > CACHE_DURATION) {
-    console.log('Fetching lines from TfL API...');
-    try {
-      cachedLines = await makeApiRequest('/Line/Mode/tube');
-      lastLinesUpdate = now;
-      console.log(`Successfully fetched ${cachedLines.length} lines from TfL`);
-    } catch (apiError) {
-      console.log('TfL API unavailable, using local data');
-      const stations = require('./public/stations.json');
-      cachedLines = Object.keys(stations).map(line => ({ name: line, id: line.toLowerCase() }));
-      lastLinesUpdate = now;
-    }
-  }
-  return cachedLines;
-}
-
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
