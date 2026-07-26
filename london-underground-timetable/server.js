@@ -895,6 +895,7 @@ app.get('/api/line/:lineId/route', async (req, res) => {
           )
           .filter(segment => segment.length >= 2);
       } catch (e) {
+        console.warn(`Failed to parse route string for line ${lineId}:`, e.message);
         return [];
       }
     }).filter(segment => segment.length >= 2);
