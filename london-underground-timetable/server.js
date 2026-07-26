@@ -233,7 +233,7 @@ async function fetchAllLineStatuses(forceRefresh = false) {
       cachedLineStatuses[lineId] = status;
       lastLineStatusUpdate[lineId] = now;
       // Add delay between requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 300));
+
     } catch (error) {
       console.warn(`Fallback status request failed for ${lineId}:`, error.message);
     }
@@ -275,7 +275,7 @@ async function fetchAllArrivals(forceRefresh = false) {
         allArrivals.push(...arrivals);
       }
       // Add delay between consecutive line requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 250));
+
     } catch (error) {
       console.warn(`Arrival request failed for ${lineId}:`, error.message);
       if ((error.statusCode === 429 || error.message === 'Request timed out') && allArrivals.length > 0) {
