@@ -334,11 +334,13 @@ const lineColorMap = {
   'Waterloo': '#95CDBA'
 };
 
+const lowercaseColorEntries = Object.entries(lineColorMap).map(([line, color]) => [line.toLowerCase(), color]);
+
 function getLineColor(lineName) {
   if (!lineName) return '#667eea';
   const normalized = lineName.toLowerCase();
-  for (const [line, color] of Object.entries(lineColorMap)) {
-    if (normalized.includes(line.toLowerCase())) {
+  for (const [line, color] of lowercaseColorEntries) {
+    if (normalized.includes(line)) {
       return color;
     }
   }
