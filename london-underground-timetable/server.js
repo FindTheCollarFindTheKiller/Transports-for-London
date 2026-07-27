@@ -51,10 +51,11 @@ function queueApiRequest(path, options = {}) {
     return inFlightRequests.get(requestKey);
   }
 
-  const requestPromise = lastQueuePromise = lastQueuePromise.catch(() => {}).then(async () => {
+  const requestPromise = lastQueuePromise.catch(() => {}).then(async () => {
     const result = await executeApiRequest(path, 0, options);
     return result;
   });
+  lastQueuePromise = requestPromise;
 
   const trackedPromise = requestPromise.then(
     (result) => {
@@ -1156,7 +1157,7 @@ app.get('/', (req, res) => {
 });
 
 // Global error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('Unhandled express error:', err);
   if (!res.headersSent) {
     res.status(500).json({ error: 'Internal server error' });
@@ -1212,9 +1213,9 @@ io.on('connection', async (socket) => {
 });
 
 // Start Server
-if (require.main === module) {
+if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
     console.log('Integrating with TfL API for real-time data...');
   });
 }
