@@ -18,3 +18,4 @@ Thumbs.db
 *.tgz
 *.zip
 .release-zip-staging/
+.env
