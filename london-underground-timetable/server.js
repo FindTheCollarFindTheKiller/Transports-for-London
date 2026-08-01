@@ -267,39 +267,23 @@ async function fetchAllArrivals(forceRefresh = false) {
     return cachedAllArrivals;
   }
 
-  const lineIds = ['bakerloo','central','circle','district','hammersmith-city','jubilee','metropolitan','northern','piccadilly','victoria','waterloo-city'];
   const allArrivals = [];
-  const startedAt = Date.now();
-  const MAX_ARRIVAL_BATCH_DURATION = 15000;
+  try {
+    const lines = 'bakerloo,central,circle,district,hammersmith-city,jubilee,metropolitan,northern,piccadilly,victoria,waterloo-city';
+    const arrivals = await makeApiRequest(`/Line/${lines}/Arrivals`, {
+      maxRetries: 1,
+      requestTimeout: 10000
+    });
 
-  // Serialize requests to avoid rate limiting - fetch one line at a time with delays
-  for (const lineId of lineIds) {
-    if ((Date.now() - startedAt) > MAX_ARRIVAL_BATCH_DURATION && allArrivals.length > 0) {
-      console.warn('Arrival batch time budget reached; returning partial live data');
-      break;
+    if (Array.isArray(arrivals)) {
+      allArrivals.push(...arrivals);
     }
-
-    try {
-      const arrivals = await makeApiRequest(`/Line/${lineId}/Arrivals`, {
-        maxRetries: 1,
-        requestTimeout: 5000
-      });
-      if (Array.isArray(arrivals)) {
-        allArrivals.push(...arrivals);
-      }
-      // Add delay between consecutive line requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 250));
-    } catch (error) {
-      console.warn(`Arrival request failed for ${lineId}:`, error.message);
-      if ((error.statusCode === 429 || error.message === 'Request timed out') && allArrivals.length > 0) {
-        console.warn('Returning partial arrivals after rate limit or timeout');
-        break;
-      }
-    }
+  } catch (error) {
+    console.warn('Batch arrival request failed:', error.message);
   }
 
   cachedAllArrivals = allArrivals;
-  lastAllArrivalsUpdate = now;
+  lastAllArrivalsUpdate = Date.now();
   return cachedAllArrivals;
 }
 
