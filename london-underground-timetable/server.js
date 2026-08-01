@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const http = require('http');
@@ -21,8 +22,6 @@ const IS_TEST_ENV = process.env.NODE_ENV === 'test';
 
 // TfL API Configuration
 const TFL_API_BASE = 'https://api.tfl.gov.uk';
-const TFL_APP_ID = process.env.TFL_APP_ID || '';
-const TFL_APP_KEY = process.env.TFL_APP_KEY || '';
 // Using public API without authentication, adding user agent for better compatibility
 const TFL_OPTIONS = {
   headers: {
@@ -154,7 +153,14 @@ async function executeApiRequest(path, attempt = 0, options = {}) {
     await new Promise(res => setTimeout(res, delay));
   }
   lastApiCall = Date.now();
-  const url = `${TFL_API_BASE}${path}`;
+  const urlObj = new URL(`${TFL_API_BASE}${path}`);
+  if (process.env.TFL_APP_KEY) {
+    urlObj.searchParams.append('app_key', process.env.TFL_APP_KEY);
+  }
+  if (process.env.TFL_APP_ID) {
+    urlObj.searchParams.append('app_id', process.env.TFL_APP_ID);
+  }
+  const url = urlObj.toString();
   console.log(`[${new Date().toLocaleTimeString()}] API Request (attempt ${attempt + 1}): ${path}`);
 
   try {
