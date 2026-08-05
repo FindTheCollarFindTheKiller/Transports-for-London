@@ -2519,6 +2519,7 @@
         let allStations = [];
         let stationMap = null;
         let plannerMap = null;
+        let plannerBackgroundRouteLayers = [];
         let stationMarker = null;
         let stationRouteLayers = [];
         let stationBackgroundRouteLayers = [];
@@ -4547,32 +4548,100 @@
 
         async function showPlannerRouteOnMap(route) {
             if (!plannerMap) return;
+
+            if (!plannerBackgroundRouteLayers.length) {
+                plannerBackgroundRouteLayers = await drawAllColoredLineRoutesOnMap(plannerMap, {
+                    opacity: 0.15,
+                    weight: 3,
+                    dashArray: '4, 8'
+                });
+            }
+
             clearPlannerRouteOverlay();
             if (!route || route.length < 2) {
                 return;
             }
 
-            const routeCoords = await Promise.all(route.map(step => getStopPointCoords(step.station)));
-            const validCoords = routeCoords.filter(Boolean);
+            // Draw colored line segments for each leg of the route
+            const validCoords = [];
+            for (let i = 0; i < route.length; i++) {
+                const step = route[i];
+                const coords = await getStopPointCoords(step.station);
+                if (coords) {
+                    validCoords.push({ ...coords, step });
+                }
+            }
+
             if (validCoords.length < 2) {
                 return;
             }
 
-            const routeLine = L.polyline(validCoords.map(coord => [coord.lat, coord.lon]), {
-                color: '#2563eb',
-                weight: 8,
-                opacity: 0.92,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(plannerMap);
-            const routeGlow = L.polyline(validCoords.map(coord => [coord.lat, coord.lon]), {
-                color: '#93c5fd',
-                weight: 18,
-                opacity: 0.24,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(plannerMap);
-            plannerRouteLayers.push(routeLine, routeGlow);
+            // Group into segments by line
+            let currentLine = null;
+            let currentSegmentCoords = [];
+
+            for (let i = 0; i < validCoords.length; i++) {
+                const current = validCoords[i];
+                const next = validCoords[i + 1];
+
+                // The line being used to travel to the next station is next.step.line
+                const lineUsed = next ? next.step.line : current.step.line;
+
+                if (currentLine !== lineUsed && currentSegmentCoords.length > 0) {
+                    currentSegmentCoords.push([current.lat, current.lon]);
+
+                    const color = currentLine ? (colorHexMap[lineColors[currentLine] || 'central'] || '#2563eb') : '#2563eb';
+
+                    const routeGlow = L.polyline(currentSegmentCoords, {
+                        color,
+                        weight: 16,
+                        opacity: 0.2,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(plannerMap);
+
+                    const routeLine = L.polyline(currentSegmentCoords, {
+                        color,
+                        weight: 7,
+                        opacity: 0.92,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(plannerMap);
+
+                    plannerRouteLayers.push(routeGlow, routeLine);
+
+                    currentSegmentCoords = [[current.lat, current.lon]];
+                    currentLine = lineUsed;
+                } else {
+                    if (currentSegmentCoords.length === 0) {
+                        currentSegmentCoords.push([current.lat, current.lon]);
+                        currentLine = lineUsed;
+                    } else {
+                        currentSegmentCoords.push([current.lat, current.lon]);
+                    }
+                }
+            }
+
+            if (currentSegmentCoords.length > 1) {
+                const color = currentLine ? (colorHexMap[lineColors[currentLine] || 'central'] || '#2563eb') : '#2563eb';
+                const routeGlow = L.polyline(currentSegmentCoords, {
+                    color,
+                    weight: 16,
+                    opacity: 0.2,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(plannerMap);
+
+                const routeLine = L.polyline(currentSegmentCoords, {
+                    color,
+                    weight: 7,
+                    opacity: 0.92,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(plannerMap);
+
+                plannerRouteLayers.push(routeGlow, routeLine);
+            }
 
             const originCoords = validCoords[0];
             const originMarker = L.circleMarker([originCoords.lat, originCoords.lon], {
