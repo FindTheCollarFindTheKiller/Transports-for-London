@@ -632,10 +632,13 @@ async function resolveStopPoint(query) {
 
   const results = await makeApiRequest(`/StopPoint/Search?query=${encodeURIComponent(query)}&modes=tube`);
   const matches = Array.isArray(results?.matches) ? results.matches : [];
-  const exactMatch = matches.find(match => canonicalizeStationName(match.name) === normalizedQuery);
-  const prefixMatch = matches.find(match => canonicalizeStationName(match.name).startsWith(normalizedQuery));
-  const includesMatch = matches.find(match => canonicalizeStationName(match.name).includes(normalizedQuery));
-  const preferredMatch = exactMatch || prefixMatch || includesMatch || matches[0] || null;
+  const mappedMatches = matches.map(match => ({ match, canonicalName: canonicalizeStationName(match.name) }));
+
+  const exactMatch = mappedMatches.find(m => m.canonicalName === normalizedQuery);
+  const prefixMatch = mappedMatches.find(m => m.canonicalName.startsWith(normalizedQuery));
+  const includesMatch = mappedMatches.find(m => m.canonicalName.includes(normalizedQuery));
+
+  const preferredMatch = exactMatch?.match || prefixMatch?.match || includesMatch?.match || matches[0] || null;
 
   if (!preferredMatch) {
     return null;
