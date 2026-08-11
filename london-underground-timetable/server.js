@@ -80,59 +80,51 @@ function makeApiRequest(path, options = {}) {
   return queueApiRequest(path, options);
 }
 
-function performHttpRequest(url, path, requestTimeout) {
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, TFL_OPTIONS, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try {
-            const parsed = JSON.parse(data);
-            console.log(`[${new Date().toLocaleTimeString()}] ✓ Success: ${path} (${Array.isArray(parsed) ? parsed.length : 'object'} items)`);
-            // Reset backoff on success
-            retryAfterUntil = 0;
-            resolve(parsed);
-          } catch (parseError) {
-            const error = new Error('Invalid JSON response from TfL API');
-            error.isRetryable = true;
-            reject(error);
-          }
-          return;
-        }
-
-        const message = `API returned status ${res.statusCode}`;
-        const error = new Error(message);
-        error.statusCode = res.statusCode;
-        error.isRetryable = res.statusCode === 429 || res.statusCode >= 500;
-        
-        // Handle Retry-After header for 429 responses
-        if (res.statusCode === 429) {
-          const retryAfter = res.headers['retry-after'];
-          if (retryAfter) {
-            const backoffMs = isNaN(retryAfter) ? new Date(retryAfter).getTime() - Date.now() : parseInt(retryAfter) * 1000;
-            retryAfterUntil = Math.max(retryAfterUntil, Date.now() + backoffMs);
-            console.error(`[${new Date().toLocaleTimeString()}] 🚫 Rate limit hit! Backing off until ${new Date(retryAfterUntil).toLocaleTimeString()}`);
-          }
-        }
-        
-        console.log(`[${new Date().toLocaleTimeString()}] ✗ Failed: ${path} (${message})`);
-        reject(error);
-      });
+async function performHttpRequest(url, path, requestTimeout) {
+  try {
+    const response = await fetch(url, {
+      ...TFL_OPTIONS,
+      signal: AbortSignal.timeout(requestTimeout)
     });
 
-    req.on('error', (e) => {
-      const error = new Error(`Request error for ${path}: ${e.message}`);
-      error.isRetryable = true;
-      reject(error);
-    });
+    if (response.status === 200) {
+      const text = await response.text();
+      try {
+        const parsed = JSON.parse(text);
+        console.log(`[${new Date().toLocaleTimeString()}] ✓ Success: ${path} (${Array.isArray(parsed) ? parsed.length : 'object'} items)`);
+        retryAfterUntil = 0;
+        return parsed;
+      } catch (parseError) {
+        const error = new Error('Invalid JSON response from TfL API');
+        error.isRetryable = true;
+        throw error;
+      }
+    }
 
-    req.setTimeout(requestTimeout, () => {
-      const timeoutError = new Error('Request timed out');
-      timeoutError.isRetryable = true;
-      req.destroy(timeoutError);
-    });
-  });
+    const message = `API returned status ${response.status}`;
+    const error = new Error(message);
+    error.statusCode = response.status;
+    error.isRetryable = response.status === 429 || response.status >= 500;
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('retry-after');
+      if (retryAfter) {
+        const backoffMs = isNaN(retryAfter) ? new Date(retryAfter).getTime() - Date.now() : parseInt(retryAfter) * 1000;
+        retryAfterUntil = Math.max(retryAfterUntil, Date.now() + backoffMs);
+        console.error(`[${new Date().toLocaleTimeString()}] 🚫 Rate limit hit! Backing off until ${new Date(retryAfterUntil).toLocaleTimeString()}`);
+      }
+    }
+
+    console.log(`[${new Date().toLocaleTimeString()}] ✗ Failed: ${path} (${message})`);
+    throw error;
+  } catch (e) {
+    if (e.statusCode) throw e;
+
+    const isTimeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+    const error = new Error(isTimeout ? 'Request timed out' : `Request error for ${path}: ${e.message}`);
+    error.isRetryable = true;
+    throw error;
+  }
 }
 
 async function executeApiRequest(path, attempt = 0, options = {}) {
