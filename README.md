@@ -100,22 +100,9 @@ npm run dev
 
 If you are running commands from the workspace root (`Learning_Workspace`), this script will automatically change into `london-underground-timetable` and start the app there.
 
-## Azure App Service Deployment
+## Deployment
 
-This app is ready to deploy to Azure App Service on Linux.
-
-Provision the infrastructure with the files in [infra/main.bicep](infra/main.bicep) and [infra/main.parameters.json](infra/main.parameters.json), then deploy the verified zip artifact [london-underground-timetable-1.0.0.zip](london-underground-timetable-1.0.0.zip) using zip deployment.
-
-Suggested flow:
-
-```bash
-az group create --name <resource-group> --location <region>
-az deployment group what-if --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json prefix=<app-name-prefix>
-az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.parameters.json prefix=<app-name-prefix>
-az webapp deploy --resource-group <resource-group> --name <app-name-prefix>-web --src-path london-underground-timetable-1.0.0.zip --type zip
-```
-
-For the full deployment rationale and resource plan, see [.azure/plan.copilotmd](.azure/plan.copilotmd).
+This application is ready to be deployed using Docker. A `Dockerfile` and `render.yaml` are included for deploying on Render or any Docker-compatible hosting platform.
 
 ---
 
