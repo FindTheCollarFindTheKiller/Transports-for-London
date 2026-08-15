@@ -191,21 +191,25 @@ const ALL_ARRIVALS_CACHE_DURATION = 30000; // 30 seconds (increased from 15s)
 const JOURNEY_PLAN_CACHE_DURATION = 120000; // 2 minutes
 
 async function fetchFallbackLineStatuses(now) {
-  // Fallback: serialize individual line requests instead of parallel to avoid rate limiting
+  // Fallback: fetch multiple lines simultaneously using comma-separated list
   const fallbackLineIds = Array.from(new Set(Object.values(lineNameToId)));
   const statusMap = {};
 
-  for (const lineId of fallbackLineIds) {
-    try {
-      const status = await makeApiRequest(`/Line/${lineId}/Status`);
-      statusMap[lineId] = status;
-      cachedLineStatuses[lineId] = status;
-      lastLineStatusUpdate[lineId] = now;
-      // Add delay between requests to avoid rate limiting
-      await new Promise(res => setTimeout(res, 300));
-    } catch (error) {
-      console.warn(`Fallback status request failed for ${lineId}:`, error.message);
+  try {
+    const lineIdsStr = fallbackLineIds.join(',');
+    const statuses = await makeApiRequest(`/Line/${lineIdsStr}/Status`);
+    if (Array.isArray(statuses)) {
+      statuses.forEach(status => {
+        const lineId = (status.id || status.lineId || status.name || '').toString().toLowerCase().replace(/\s+/g, '-');
+        if (lineId) {
+          statusMap[lineId] = status;
+          cachedLineStatuses[lineId] = status;
+          lastLineStatusUpdate[lineId] = now;
+        }
+      });
     }
+  } catch (error) {
+    console.warn(`Fallback status request failed for batch lines:`, error.message);
   }
 
   return statusMap;
@@ -1199,7 +1203,7 @@ io.on('connection', async (socket) => {
 
 // Start Server
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
     console.log('Integrating with TfL API for real-time data...');
   });

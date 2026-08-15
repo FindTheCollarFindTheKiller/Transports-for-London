@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tfl-timetable-app
+    env: docker
+    plan: free
+    region: oregon
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
