@@ -527,13 +527,31 @@ function findLocalRoutesBetweenStations(origin, destination, maxRoutes = 4) {
       const nextTransfers = current.line === null || current.line === edge.line ? current.transfers : current.transfers + 1;
       const nextStops = current.stops + 1;
       const key = `${edge.station}|${edge.line}`;
-      const best = visited.get(key);
+      let bests = visited.get(key);
+      if (!bests) {
+        bests = [];
+        visited.set(key, bests);
+      }
 
-      if (best && best.transfers <= nextTransfers && best.stops <= nextStops) {
+      let isDominated = false;
+      for (let i = 0; i < bests.length; i++) {
+        if (bests[i].transfers <= nextTransfers && bests[i].stops <= nextStops) {
+          isDominated = true;
+          break;
+        }
+      }
+
+      if (isDominated) {
         continue;
       }
 
-      visited.set(key, { transfers: nextTransfers, stops: nextStops });
+      for (let i = bests.length - 1; i >= 0; i--) {
+        if (bests[i].transfers >= nextTransfers && bests[i].stops >= nextStops) {
+          bests.splice(i, 1);
+        }
+      }
+
+      bests.push({ transfers: nextTransfers, stops: nextStops });
       queue.push({
         station: edge.station,
         line: edge.line,
