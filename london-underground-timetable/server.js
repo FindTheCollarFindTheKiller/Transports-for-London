@@ -3,7 +3,6 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
-const https = require('https');
 const { URL } = require('url');
 const app = express();
 const server = http.createServer(app);
@@ -323,11 +322,16 @@ const lineColorMap = {
   'Waterloo': '#95CDBA'
 };
 
+const precomputedLineColors = Object.entries(lineColorMap).map(([line, color]) => ({
+  line: line.toLowerCase(),
+  color
+}));
+
 function getLineColor(lineName) {
   if (!lineName) return '#667eea';
   const normalized = lineName.toLowerCase();
-  for (const [line, color] of Object.entries(lineColorMap)) {
-    if (normalized.includes(line.toLowerCase())) {
+  for (const { line, color } of precomputedLineColors) {
+    if (normalized.includes(line)) {
       return color;
     }
   }
@@ -1227,4 +1231,4 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-module.exports = { app, server, io, normalizeStationName, getLineColor };
+module.exports = { app, server, io, normalizeStationName, mapArrivalToTrain, getLineColor };
