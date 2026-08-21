@@ -1227,4 +1227,4 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-module.exports = { app, server, io, normalizeStationName };
+module.exports = { app, server, io, normalizeStationName, mapArrivalToTrain };
