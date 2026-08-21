@@ -3,7 +3,6 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
-const https = require('https');
 const { URL } = require('url');
 const app = express();
 const server = http.createServer(app);
