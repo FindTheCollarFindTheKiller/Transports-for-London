@@ -291,7 +291,7 @@ async function loadTubeLines() {
   if (!cachedLines || (now - lastLinesUpdate) > CACHE_DURATION) {
     console.log('Fetching lines from TfL API...');
     try {
-      cachedLines = await makeApiRequest('/Line/Mode/tube');
+      cachedLines = await makeApiRequest('/Line/Mode/tube,overground');
       lastLinesUpdate = now;
       console.log(`Successfully fetched ${cachedLines.length} lines from TfL`);
     } catch (apiError) {
@@ -644,7 +644,7 @@ async function resolveStopPoint(query) {
     return cachedStationLookup[normalizedQuery];
   }
 
-  const results = await makeApiRequest(`/StopPoint/Search?query=${encodeURIComponent(query)}&modes=tube`);
+  const results = await makeApiRequest(`/StopPoint/Search?query=${encodeURIComponent(query)}&modes=tube,overground`);
   const matches = Array.isArray(results?.matches) ? results.matches : [];
   const mappedMatches = matches.map(match => ({ match, canonicalName: canonicalizeStationName(match.name) }));
 
@@ -756,7 +756,7 @@ async function fetchJourneyPlan(origin, destination) {
 
     const journeyFrom = getJourneyLocation(fromStop, normalizedOrigin);
     const journeyTo = getJourneyLocation(toStop, normalizedDestination);
-    const journeyData = await makeApiRequest(`/Journey/JourneyResults/${encodeURIComponent(journeyFrom)}/to/${encodeURIComponent(journeyTo)}?mode=tube&journeyPreference=LeastTime`);
+    const journeyData = await makeApiRequest(`/Journey/JourneyResults/${encodeURIComponent(journeyFrom)}/to/${encodeURIComponent(journeyTo)}?mode=tube,overground&journeyPreference=LeastTime`);
     const routes = Array.isArray(journeyData?.journeys)
       ? journeyData.journeys.slice(0, 4).map(mapTfLJourney).filter(route => route.segments.length > 0)
       : [];
@@ -802,7 +802,7 @@ app.get('/api/lines', async (req, res) => {
     if (!cachedLines || (now - lastLinesUpdate) > CACHE_DURATION) {
       console.log('Fetching lines from TfL API...');
       try {
-        const lines = await makeApiRequest('/Line/Mode/tube');
+        const lines = await makeApiRequest('/Line/Mode/tube,overground');
         if (!Array.isArray(lines)) {
           throw new Error('Unexpected TfL lines response');
         }
@@ -1013,7 +1013,7 @@ app.get('/api/stoppoint/search', async (req, res) => {
       return res.json(cachedStopSearches[cacheKey]);
     }
     
-    const queryString = `/StopPoint/Search?query=${encodeURIComponent(query)}&modes=tube`;
+    const queryString = `/StopPoint/Search?query=${encodeURIComponent(query)}&modes=tube,overground`;
     const results = await makeApiRequest(queryString);
     
     // Enhance results with local line information
