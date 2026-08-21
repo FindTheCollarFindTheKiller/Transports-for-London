@@ -405,6 +405,8 @@ function createLocalStationGraph() {
 }
 
 let canonicalizedStationCache = null;
+let stationExactMatchMap = null;
+
 function getCanonicalizedStations() {
   if (canonicalizedStationCache) return canonicalizedStationCache;
   const stationNames = Object.keys(createLocalStationGraph());
@@ -412,6 +414,15 @@ function getCanonicalizedStations() {
     original: station,
     canonicalized: canonicalizeStationName(station)
   }));
+
+  stationExactMatchMap = new Map();
+  for (let i = 0; i < canonicalizedStationCache.length; i++) {
+    const s = canonicalizedStationCache[i];
+    if (!stationExactMatchMap.has(s.canonicalized)) {
+      stationExactMatchMap.set(s.canonicalized, s.original);
+    }
+  }
+
   return canonicalizedStationCache;
 }
 
@@ -420,23 +431,23 @@ function normalizeStationName(query) {
   const normalized = canonicalizeStationName(query);
   const stations = getCanonicalizedStations();
 
-  let prefixMatch = null;
+  if (stationExactMatchMap.has(normalized)) {
+    return stationExactMatchMap.get(normalized);
+  }
+
   let includesMatch = null;
 
   for (let i = 0; i < stations.length; i++) {
     const station = stations[i];
-    if (station.canonicalized === normalized) {
+    if (station.canonicalized.startsWith(normalized)) {
       return station.original;
-    }
-    if (!prefixMatch && station.canonicalized.startsWith(normalized)) {
-      prefixMatch = station.original;
     }
     if (!includesMatch && station.canonicalized.includes(normalized)) {
       includesMatch = station.original;
     }
   }
 
-  return prefixMatch || includesMatch || null;
+  return includesMatch;
 }
 
 
