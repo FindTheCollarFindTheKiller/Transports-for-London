@@ -1242,4 +1242,11 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-module.exports = { app, server, io, normalizeStationName, mapArrivalToTrain };
+
+const _testUtils = {
+  setCachedLineStatus: (lineId, status) => {
+    cachedLineStatuses[lineId] = status;
+    lastLineStatusUpdate[lineId] = 0;
+  }
+};
+module.exports = { app, server, io, normalizeStationName, mapArrivalToTrain, ..._testUtils };
