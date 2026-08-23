@@ -1163,11 +1163,45 @@ async function fetchLiveTfLTrains(forceRefresh = false) {
   }
 }
 
+const LIVE_TRAIN_CACHE_DURATION = 30000;
+let liveTrainCache = { trains: localTrainsTracking.trains };
+let liveTrainCacheUpdatedAt = 0;
+let liveTrainRefreshPromise = null;
+
+async function refreshLiveTrainCache(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && Array.isArray(liveTrainCache?.trains) && (now - liveTrainCacheUpdatedAt) < LIVE_TRAIN_CACHE_DURATION) {
+    return liveTrainCache;
+  }
+
+  if (liveTrainRefreshPromise) {
+    return liveTrainRefreshPromise;
+  }
+
+  liveTrainRefreshPromise = (async () => {
+    const trains = await fetchLiveTfLTrains(forceRefresh);
+    liveTrainCache = { trains };
+    liveTrainCacheUpdatedAt = Date.now();
+    return liveTrainCache;
+  })().catch((error) => {
+    console.error('Error refreshing live train cache:', error.message);
+    if (!liveTrainCache || !Array.isArray(liveTrainCache.trains)) {
+      liveTrainCache = localTrainsTracking;
+      liveTrainCacheUpdatedAt = Date.now();
+    }
+    return liveTrainCache;
+  }).finally(() => {
+    liveTrainRefreshPromise = null;
+  });
+
+  return liveTrainRefreshPromise;
+}
+
 app.get('/api/live-trains', async (req, res) => {
   try {
     const forceRefresh = req.query.forceRefresh === 'true';
-    const trains = await fetchLiveTfLTrains(forceRefresh);
-    res.json({ trains });
+    const data = await refreshLiveTrainCache(forceRefresh);
+    res.json(data);
   } catch (error) {
     console.error('Error fetching live trains from TfL:', error.message);
     res.json(localTrainsTracking);
@@ -1195,36 +1229,25 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // WebSocket connection for live updates
-let liveTrainCache = null;
 let trainUpdateInterval = null;
 
 io.on('connection', async (socket) => {
   console.log('New client connected:', socket.id);
-  
-  if (!liveTrainCache) {
-    try {
-      const trains = await fetchLiveTfLTrains();
-      liveTrainCache = { trains };
-    } catch (error) {
-      console.error('Error loading TfL live trains:', error.message);
-      liveTrainCache = localTrainsTracking;
-    }
-  }
 
-  socket.emit('initial-trains', liveTrainCache);
-  
+  const data = await refreshLiveTrainCache();
+  socket.emit('initial-trains', data);
+
   if (!trainUpdateInterval) {
     trainUpdateInterval = setInterval(async () => {
       try {
-        const trains = await fetchLiveTfLTrains();
-        liveTrainCache = { trains };
-        io.emit('train-update', liveTrainCache);
+        const data = await refreshLiveTrainCache();
+        io.emit('train-update', data);
       } catch (error) {
         console.error('Error updating trains:', error.message);
       }
     }, 30000); // Increased from 15s to 30s to reduce API call frequency
   }
-  
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
     if (io.engine.clientsCount === 0 && trainUpdateInterval) {

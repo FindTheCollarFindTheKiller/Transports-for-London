@@ -2547,9 +2547,11 @@
         let trackingRenderTimer = null;
         let trackingRenderVersion = 0;
         const stationCoordinateCache = {};
+        const stationCoordinateLookupPromises = {};
         const lineStationCoordsCache = {};
         const lineRouteCache = {};
         const stationSearchCache = new Map();
+        const stationSearchPromises = new Map();
 
         // Network Map
         let networkMap = null;
@@ -2805,19 +2807,30 @@
           if (stationSearchCache.has(normalizedQuery)) {
             return stationSearchCache.get(normalizedQuery);
           }
+          if (stationSearchPromises.has(normalizedQuery)) {
+            return stationSearchPromises.get(normalizedQuery);
+          }
 
-          try {
-            const res = await fetch(`api/stoppoint/search?query=${encodeURIComponent(query)}`);
-            if (res.ok) {
+          const request = (async () => {
+            try {
+              const res = await fetch(`api/stoppoint/search?query=${encodeURIComponent(query)}`);
+              if (!res.ok) {
+                return null;
+              }
               const results = await res.json();
               const matches = results.matches || results;
               stationSearchCache.set(normalizedQuery, matches);
               return matches;
+            } catch (error) {
+              console.error('Error searching with TfL:', error);
+              return null;
             }
-          } catch (error) {
-            console.error('Error searching with TfL:', error);
-          }
-          return null;
+          })().finally(() => {
+            stationSearchPromises.delete(normalizedQuery);
+          });
+
+          stationSearchPromises.set(normalizedQuery, request);
+          return request;
         }
 
         function debounce(fn, delay = 250) {
@@ -2854,19 +2867,37 @@
         const debouncedSearchStationWithTfL = debounce(searchStationWithTfL, 350);
 
         async function getStopPointCoords(stationName) {
-          if (stationCoordinateCache[stationName]) {
-            return stationCoordinateCache[stationName];
+          const lookupKey = (stationName || '').trim();
+          if (!lookupKey) {
+            return null;
           }
-                    const matches = await searchStationWithTfL(stationName);
-          if (!matches || !matches.length) return null;
-          const exactMatch = matches.find(item => item.name && item.name.toLowerCase() === stationName.toLowerCase());
-          const tubeMatch = matches.find(item => item.modes && item.modes.includes('tube'));
-          const match = exactMatch || tubeMatch || matches[0];
-          if (match && match.lat != null && match.lon != null) {
-            stationCoordinateCache[stationName] = { lat: match.lat, lon: match.lon };
-            return stationCoordinateCache[stationName];
+
+          if (stationCoordinateCache[lookupKey]) {
+            return stationCoordinateCache[lookupKey];
           }
-          return null;
+
+          if (stationCoordinateLookupPromises[lookupKey]) {
+            return stationCoordinateLookupPromises[lookupKey];
+          }
+
+          const request = (async () => {
+            const matches = await searchStationWithTfL(lookupKey);
+            if (!matches || !matches.length) return null;
+            const exactMatch = matches.find(item => item.name && item.name.toLowerCase() === lookupKey.toLowerCase());
+            const tubeMatch = matches.find(item => item.modes && item.modes.includes('tube'));
+            const match = exactMatch || tubeMatch || matches[0];
+            if (match && match.lat != null && match.lon != null) {
+              const coords = { lat: match.lat, lon: match.lon };
+              stationCoordinateCache[lookupKey] = coords;
+              return coords;
+            }
+            return null;
+          })().finally(() => {
+            delete stationCoordinateLookupPromises[lookupKey];
+          });
+
+          stationCoordinateLookupPromises[lookupKey] = request;
+          return request;
         }
 
         async function getLineRouteCoords(lineName) {
@@ -3302,14 +3333,26 @@
           }
 
           const bounds = trackingMap.getBounds();
-                    const visible = await Promise.all(filteredByLine.map(async train => {
-            if (!train.nextStation) return null;
-            const coords = await getStopPointCoords(train.nextStation);
-            if (!coords) return null;
-            return bounds.contains(L.latLng(coords.lat, coords.lon)) ? train : null;
-          }));
+          const stationNames = [...new Set(filteredByLine.map(train => train.nextStation).filter(Boolean))];
+          const stationCoordsMap = new Map();
 
-                    return visible.filter(Boolean);
+          for (const stationName of stationNames) {
+            const coords = await getStopPointCoords(stationName);
+            if (coords) {
+              stationCoordsMap.set(stationName, coords);
+            }
+          }
+
+          return filteredByLine.filter(train => {
+            if (!train.nextStation) {
+              return false;
+            }
+            const coords = stationCoordsMap.get(train.nextStation);
+            if (!coords) {
+              return false;
+            }
+            return bounds.contains(L.latLng(coords.lat, coords.lon));
+          });
         }
 
                 function getTrackingTrainsByLine() {
